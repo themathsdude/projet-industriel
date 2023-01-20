@@ -1,0 +1,16 @@
+// fonction paramétrique qui dessine le Y du tube
+// type func, renvoie un vecteur real[int] nommé y_tube
+
+/*
+func real[int] y_tube(2) (real t, real hauteur_y, real longueur_y, real rayon_tube) {
+	
+	real alpha = atan(hauteur_y/longueur_y);
+	real[int] p1(2) = [L, -rayon_tube];
+	real[int] p2(2) = [0, -hauteur_y -rayon_tube*cos(alpha)];
+	real[int] y_tube(2) = [L - t*L, -rayon_tube + (-hauteur_y -rayon_tube*cos(alpha)
+									+rayon_tube)*t];
+	return y_tube;
+}
+ou faire une lambda fonction pour capturer les paramètres dont on a besoin
+ou alors donner les paramètres dans border, sauf t
+*/

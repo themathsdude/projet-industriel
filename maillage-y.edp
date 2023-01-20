@@ -1,0 +1,25 @@
+// paramètres du tube
+
+real diametreTube = 1e-1;
+real rayonTube = diametreTube/2;
+
+real alpha = pi/2; // angle incidence
+real longueurTubeY = 1; // longueur sur l'axe des abscisses de la partie en Y
+
+// liste des points de la courbe 
+real[int] p1 = [longueury, -rayontube];
+real[int] p2 = [0, -hauteury -rayontube*cos(alpha)];
+
+
+border bord1 (t = 0,1){x = p1[0] - t*(p2[0]-p1[0]); y = p1[1] - t*(p2[1]-p1[1]);}
+plot(bord1(10));
+
+
+
+
+
+
+
+
+
+
