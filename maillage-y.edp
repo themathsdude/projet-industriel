@@ -1,25 +1,65 @@
 // paramètres du tube
 
 real diametreTube = 1e-1;
-real rayonTube = diametreTube/2;
+real rayonTube = diametreTube / 2;
 
-real alpha = pi/2; // angle incidence
-real longueurTubeY = 1; // longueur sur l'axe des abscisses de la partie en Y
+real alpha = pi / 4;     // angle incidence
+real longueurTubeY = 1;  // longueur sur l'axe des abscisses de la partie en Y
+real longueurTube1 = 1;  // longueur sur l'axe des abcisses de la suite du Y
+real d0 = diametreTube / sin(alpha) - rayonTube / tan(alpha);
 
-// liste des points de la courbe 
-real[int] p1 = [longueury, -rayontube];
-real[int] p2 = [0, -hauteury -rayontube*cos(alpha)];
+// liste des points de la courbe
+real[int] p1 = [ longueurTubeY + d0 + longueurTube1, -rayonTube ];
+real[int] p2 = [ longueurTubeY + d0, -rayonTube ];
+real[int] p3 = [ 0, -longueurTubeY *tan(alpha) - diametreTube / cos(alpha) ];
+real[int] p4 = [ 0, -longueurTubeY *tan(alpha) ];
+real[int] p5 = [ longueurTubeY, 0 ];
+real[int] p6 = [ 0, longueurTubeY *tan(alpha) ];
+real[int] p7 = [ 0, longueurTubeY *tan(alpha) + diametreTube / cos(alpha) ];
+real[int] p8 = [ longueurTubeY + d0, rayonTube ];
+real[int] p9 = [ longueurTubeY + d0 + longueurTube1, rayonTube ];
 
+border bord1(t = 0, 1) {
+  x = p1[0] + t * (p2[0] - p1[0]);
+  y = p1[1] + t * (p2[1] - p1[1]);
+}
 
-border bord1 (t = 0,1){x = p1[0] - t*(p2[0]-p1[0]); y = p1[1] - t*(p2[1]-p1[1]);}
-plot(bord1(10));
+border bord2(t = 0, 1) {
+  x = p2[0] + t * (p3[0] - p2[0]);
+  y = p2[1] + t * (p3[1] - p2[1]);
+}
 
+border bord3(t = 0, 1) {
+  x = p3[0] + t * (p4[0] - p3[0]);
+  y = p3[1] + t * (p4[1] - p3[1]);
+}
 
+border bord4(t = 0, 1) {
+  x = p4[0] + t * (p5[0] - p4[0]);
+  y = p4[1] + t * (p5[1] - p4[1]);
+}
 
+border bord5(t = 0, 1) {
+  x = p5[0] + t * (p6[0] - p5[0]);
+  y = p5[1] + t * (p6[1] - p5[1]);
+}
 
+border bord6(t = 0, 1) {
+  x = p6[0] + t * (p7[0] - p6[0]);
+  y = p6[1] + t * (p7[1] - p6[1]);
+}
 
+border bord7(t = 0, 1) {
+  x = p7[0] + t * (p8[0] - p7[0]);
+  y = p7[1] + t * (p8[1] - p7[1]);
+}
 
+border bord8(t = 0, 1) {
+  x = p8[0] + t * (p9[0] - p8[0]);
+  y = p8[1] + t * (p9[1] - p8[1]);
+}
 
+int nbArretes = 10;
 
-
-
+plot(bord1(nbArretes) + bord2(nbArretes) + bord3(nbArretes) + bord4(nbArretes) +
+     bord5(nbArretes) + bord6(nbArretes) + bord7(nbArretes) + bord8(nbArretes));
