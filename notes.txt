@@ -14,3 +14,17 @@ func real[int] y_tube(2) (real t, real hauteur_y, real longueur_y, real rayon_tu
 ou faire une lambda fonction pour capturer les paramètres dont on a besoin
 ou alors donner les paramètres dans border, sauf t
 */
+
+border hautSerpent(t = 0, 1) {
+alpha = atan(hauteurOscillations*k*cos(k*t));
+x = p9[0] + departChauffe[0] + t - rayonTube*sin(alpha);
+y = p9[1] + departChauffe[1] + 
+hauteurOscillations*sin(k*t) + rayonTube*cos(alpha);
+}
+
+border basSerpent(t = 1, 0) {
+alpha = atan(hauteurOscillations*k*cos(k*t));
+x = p1[0] + departChauffe[0] + t + rayonTube*sin(alpha);
+y = p1[1] + departChauffe[1] + 
+hauteurOscillations*sin(k*t) - rayonTube*cos(alpha);
+}

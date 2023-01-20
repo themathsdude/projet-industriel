@@ -5,8 +5,14 @@ real rayonTube = diametreTube / 2;
 
 real alpha = pi / 4;     // angle incidence
 real longueurTubeY = 1;  // longueur sur l'axe des abscisses de la partie en Y
-real longueurTube1 = 1;  // longueur sur l'axe des abcisses de la suite du Y
+real longueurTube1 = 0.1;  // longueur sur l'axe des abcisses de la suite du Y
 real d0 = diametreTube / sin(alpha) - rayonTube / tan(alpha);
+
+// paramètres de la section de chauffe
+real[int] departChauffe = [rayonTube, rayonTube];
+real nbOscillations = 2;
+real hauteurOscillations = 2*rayonTube;
+real k = 2*pi*nbOscillations;
 
 // liste des points de la courbe
 real[int] p1 = [ longueurTubeY + d0 + longueurTube1, -rayonTube ];
@@ -59,7 +65,22 @@ border bord8(t = 0, 1) {
   y = p8[1] + t * (p9[1] - p8[1]);
 }
 
+border hautSerpent(t = 0, 1) {
+alpha = atan(hauteurOscillations*k*cos(k*t));
+x = p9[0] + departChauffe[0] + t;
+y = p9[1] + departChauffe[1] + 
+hauteurOscillations*sin(k*t);
+}
+
+border basSerpent(t = 1, 0) {
+alpha = atan(hauteurOscillations*k*cos(k*t));
+x = p1[0] + departChauffe[0] + t;
+y = p1[1] + departChauffe[1] + 
+hauteurOscillations*sin(k*t);
+}
+
 int nbArretes = 10;
 
 plot(bord1(nbArretes) + bord2(nbArretes) + bord3(nbArretes) + bord4(nbArretes) +
-     bord5(nbArretes) + bord6(nbArretes) + bord7(nbArretes) + bord8(nbArretes));
+     bord5(nbArretes) + bord6(nbArretes) + bord7(nbArretes) + bord8(nbArretes) +
+     hautSerpent(10*nbArretes) + basSerpent(10*nbArretes));
