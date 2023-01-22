@@ -5,14 +5,15 @@ real rayonTube = diametreTube / 2;
 
 real alpha = pi / 4;     // angle incidence
 real longueurTubeY = 1;  // longueur sur l'axe des abscisses de la partie en Y
-real longueurTube1 = 0.1;  // longueur sur l'axe des abcisses de la suite du Y
+real longueurTube1 = 1;  // longueur sur l'axe des abcisses de la suite du Y
 real d0 = diametreTube / sin(alpha) - rayonTube / tan(alpha);
 
 // paramètres de la section de chauffe
-real[int] departChauffe = [rayonTube, rayonTube];
-real nbOscillations = 2;
-real hauteurOscillations = 2*rayonTube;
-real k = 2*pi*nbOscillations;
+real[int] departChauffe = [ rayonTube, rayonTube ];
+real nbOscillations = 4 + 0.5;
+real longueurOscillations = 1;
+real hauteurOscillations = 2 * rayonTube;
+real k = 2 * pi * nbOscillations / longueurOscillations;
 
 // liste des points de la courbe
 real[int] p1 = [ longueurTubeY + d0 + longueurTube1, -rayonTube ];
@@ -60,27 +61,80 @@ border bord7(t = 0, 1) {
   y = p7[1] + t * (p8[1] - p7[1]);
 }
 
-border bord8(t = 0, 1) {
-  x = p8[0] + t * (p9[0] - p8[0]);
+border bord8(t = p8[0], p9[0]) {
+  x = t;
   y = p8[1] + t * (p9[1] - p8[1]);
 }
 
-border hautSerpent(t = 0, 1) {
-alpha = atan(hauteurOscillations*k*cos(k*t));
-x = p9[0] + departChauffe[0] + t;
-y = p9[1] + departChauffe[1] + 
-hauteurOscillations*sin(k*t);
+border hautSerpent(t = 0, longueurOscillations) {
+  x = p9[0] + departChauffe[0] + t;
+  y = p9[1] + departChauffe[1] + hauteurOscillations * sin(k * t);
 }
 
-border basSerpent(t = 1, 0) {
-alpha = atan(hauteurOscillations*k*cos(k*t));
-x = p1[0] + departChauffe[0] + t;
-y = p1[1] + departChauffe[1] + 
-hauteurOscillations*sin(k*t);
+border basSerpent(t = longueurOscillations, 0) {
+  x = p1[0] + departChauffe[0] + t;
+  y = p1[1] + departChauffe[1] + hauteurOscillations * sin(k * t);
+}
+
+// fonction qui renvoie les coefficients du polynome pour l'interpolation de
+// degré 3 entre A(xa, ya) et B(xb, yb) avec une penteA en A et penteB en B
+// le proof of concept est donné dans le fichier python, mais l'inversion de
+// matrice ne fonctionne pas ici encore ..
+
+func real[int] interpolation(real[int] A, real[int] B, real penteA,
+                             real penteB) {
+  matrix vandermonde =
+      [[A [0] ^ 3, A [0] ^ 2, A [0], 1], [B [0] ^ 3, B [0] ^ 2, B [0], 1],
+       [3 * A [0] ^ 2, 2 * A [0], 1, 0], [3 * B [0] ^ 2, 2 * B [0], 1, 0]];
+  real[int] sndmembre = [ A[1], B[1], penteA, penteB ];
+  real[int] sol = vandermonde ^ -1 * sndmembre;
+  return sol;
+}
+
+real[int] p10 = p9 + departChauffe;
+real pente = hauteurOscillations * k;
+
+// real[int] coeffs = interpolation(p1, p10, 0, pente);
+// ne fonctione pas, en attendant, on interpole sur [0, 1] et on translate :
+
+real penteB = pente * (p10[1] - p9[1]) / (p10[0] - p9[0]);
+matrix invvandermonde =
+    [ [ 2, -2, 1, 1 ], [ -3, 3, -2, -1 ], [ 0, 0, 1, 0 ], [ 1, 0, 0, 0 ] ];
+real[int] sndmembre = [ 0, 1, 0, penteB ];
+real[int] coeffs = invvandermonde * sndmembre;
+
+border jonctionHaut(t = 0, 1) {
+  x = p9[0] + t * (p10[0] - p9[0]);
+  y = p9[1] +
+      (coeffs[0] * t ^ 3 + coeffs[1] * t ^ 2 + coeffs[2] * t + coeffs[3]) *
+          (p10[1] - p9[1]);
+}
+
+border jonctionBas(t = 1, 0) {
+  x = p1[0] + t * (p10[0] - p9[0]);
+  y = p1[1] +
+      (coeffs[0] * t ^ 3 + coeffs[1] * t ^ 2 + coeffs[2] * t + coeffs[3]) *
+          (p10[1] - p9[1]);
+}
+
+border jonctionHaut2(t = 1, 0) {
+  x = p9[0] + p10[0] - p9[0]+ longueurOscillations + (1-t) * (p10[0] - p9[0]);
+  y = p9[1] +
+      (coeffs[0] * t ^ 3 + coeffs[1] * t ^ 2 + coeffs[2] * t + coeffs[3]) *
+          (p10[1] - p9[1]);
+}
+
+border jonctionBas2(t = 0, 1) {
+  x = p1[0] + p10[0] - p9[0] + longueurOscillations + (1-t) * (p10[0] - p9[0]);
+  y = p1[1] +
+      (coeffs[0] * t ^ 3 + coeffs[1] * t ^ 2 + coeffs[2] * t + coeffs[3]) *
+          (p10[1] - p9[1]);
 }
 
 int nbArretes = 10;
 
 plot(bord1(nbArretes) + bord2(nbArretes) + bord3(nbArretes) + bord4(nbArretes) +
      bord5(nbArretes) + bord6(nbArretes) + bord7(nbArretes) + bord8(nbArretes) +
-     hautSerpent(10*nbArretes) + basSerpent(10*nbArretes));
+     hautSerpent(10 * nbArretes) + basSerpent(10 * nbArretes) +
+     jonctionHaut(nbArretes) + jonctionBas(nbArretes) +
+     jonctionHaut2(nbArretes) + jonctionBas2(nbArretes));
