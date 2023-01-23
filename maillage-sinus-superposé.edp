@@ -55,7 +55,7 @@ border bord5(t = 0, 1) {
   x = p5[0] + t * (p6[0] - p5[0]);
   y = p5[1] + t * (p6[1] - p5[1]);
 }
-chauffe border bord6(t = 0, 1) {
+border bord6(t = 0, 1) {
   x = p6[0] + t * (p7[0] - p6[0]);
   y = p6[1] + t * (p7[1] - p6[1]);
 }
@@ -101,7 +101,6 @@ func real[int] interpolation(real[int] A, real[int] B, real penteA,
   return sol;
 }
 
-real[int] p10 = p9 + translationChauffe;
 real[int] A = [0, 0];
 real[int] B = [1, 1];
 
@@ -113,6 +112,7 @@ cout << coeffs2;
 
 // construction de la jonction entre le Y et la section de chauffe
 
+real[int] p10 = p9 + translationChauffe;
 real pente = hauteurOscillations * k;
 real penteB =
     pente * (p10[0] - p9[0]) / (p10[1] - p9[1]);  // pente équivalente en x = 1
