@@ -5,16 +5,21 @@ real rayonTube = diametreTube / 2;
 
 real alpha = pi / 4;     // angle incidence
 real longueurTubeY = 1;  // longueur sur l'axe des abscisses de la partie en Y
-real longueurTube1 = 0.1;  // longueur sur l'axe des abcisses de la suite du Y
+real longueurTube1 = 1;  // longueur sur l'axe des abcisses de la suite du Y
 real d0 = diametreTube / sin(alpha) - rayonTube / tan(alpha);
 
 // paramètres de la section de chauffe
-real[int] departChauffe = [rayonTube, rayonTube];
-real nbOscillations = 2;
-real hauteurOscillations = 2*rayonTube;
-real k = 2*pi*nbOscillations;
 
-// liste des points de la courbe
+real[int] translationChauffe = [
+  3 * rayonTube, rayonTube
+];  // vecteur de translation de la partie de chauffe
+real nbOscillations = 1;
+real longueurOscillations = 1;
+real hauteurOscillations = 2 * rayonTube;
+real k = 2 * pi * nbOscillations / longueurOscillations;  // pulsation
+
+// liste des points de la partie en Y du tube
+
 real[int] p1 = [ longueurTubeY + d0 + longueurTube1, -rayonTube ];
 real[int] p2 = [ longueurTubeY + d0, -rayonTube ];
 real[int] p3 = [ 0, -longueurTubeY *tan(alpha) - diametreTube / cos(alpha) ];
@@ -24,6 +29,8 @@ real[int] p6 = [ 0, longueurTubeY *tan(alpha) ];
 real[int] p7 = [ 0, longueurTubeY *tan(alpha) + diametreTube / cos(alpha) ];
 real[int] p8 = [ longueurTubeY + d0, rayonTube ];
 real[int] p9 = [ longueurTubeY + d0 + longueurTube1, rayonTube ];
+
+// construction des bords de la partie en Y du tube
 
 border bord1(t = 0, 1) {
   x = p1[0] + t * (p2[0] - p1[0]);
@@ -65,22 +72,69 @@ border bord8(t = 0, 1) {
   y = p8[1] + t * (p9[1] - p8[1]);
 }
 
-border hautSerpent(t = 0, 1) {
-alpha = atan(hauteurOscillations*k*cos(k*t));
-x = p9[0] + departChauffe[0] + t;
-y = p9[1] + departChauffe[1] + 
-hauteurOscillations*sin(k*t);
+// construction de la partie de chauffe
+
+border hautChauffe(t = 0, longueurOscillations) {
+  if (rayonTube * k > 1) {
+    cout << "la geometrie n est pas bonne !!!!!!" << endl;
+  }
+  alpha = atan(hauteurOscillations * k * cos(k * t));  // angles de déplacement
+  x = p9[0] + translationChauffe[0] + t - rayonTube * sin(alpha);
+  y = translationChauffe[1] + hauteurOscillations * sin(k * t) +
+      rayonTube * cos(alpha);
 }
 
-border basSerpent(t = 1, 0) {
-alpha = atan(hauteurOscillations*k*cos(k*t));
-x = p1[0] + departChauffe[0] + t;
-y = p1[1] + departChauffe[1] + 
-hauteurOscillations*sin(k*t);
+border basChauffe(t = longueurOscillations, 0) {
+  alpha = atan(hauteurOscillations * k * cos(k * t));
+  x = p1[0] + translationChauffe[0] + t + rayonTube * sin(alpha);
+  y = translationChauffe[1] + hauteurOscillations * sin(k * t) -
+      rayonTube * cos(alpha);
+}
+
+real alpha0 = atan(hauteurOscillations * k);
+real[int] j9 = [
+  p9[0] + translationChauffe[0] - rayonTube * sin(alpha0),
+  translationChauffe[1] + rayonTube *cos(alpha0)
+];
+real[int] j1 = [
+  p1[0] + translationChauffe[0] + rayonTube * sin(alpha0),
+  translationChauffe[1] - rayonTube *cos(alpha0)
+];
+
+// construction de la jonction entre le Y et la section de chauffe
+
+real pente = hauteurOscillations * k;
+// pentes équivalentes en x = 1 pour la jonction en j1 en p1 et j9 en p9
+real pentej9 = pente * (j9[0] - p9[0]) / (j9[1] - p9[1]);
+real pentej1 = pente * (j1[0] - p1[0]) / (j1[1] - p1[1]);
+
+// regression polynomiale
+matrix invvandermonde =
+    [ [ 2, -2, 1, 1 ], [ -3, 3, -2, -1 ], [ 0, 0, 1, 0 ], [ 1, 0, 0, 0 ] ];
+real[int] sndmembrej9 = [ 0, 1, 0, pentej9 ];
+real[int] sndmembrej1 = [ 0, 1, 0, pentej1 ];
+real[int] coeffsj9 = invvandermonde * sndmembrej9;
+real[int] coeffsj1 = invvandermonde * sndmembrej1;
+
+border jonctionHaut(t = 0, 1) {
+  x = p9[0] + t * (j9[0] - p9[0]);
+  y = p9[1] + (coeffsj9[0] * t ^ 3 + coeffsj9[1] * t ^
+               2 + coeffsj9[2] * t + coeffsj9[3]) *
+                  (j9[1] - p9[1]);
+}
+
+border jonctionBas(t = 1, 0) {
+  x = p1[0] + t * (j1[0] - p1[0]);
+  y = p1[1] + (coeffsj1[0] * t ^ 3 + coeffsj1[1] * t ^
+               2 + coeffsj1[2] * t + coeffsj1[3]) *
+                  (j1[1] - p1[1]);
 }
 
 int nbArretes = 10;
 
+// affichage du domaine
+
 plot(bord1(nbArretes) + bord2(nbArretes) + bord3(nbArretes) + bord4(nbArretes) +
      bord5(nbArretes) + bord6(nbArretes) + bord7(nbArretes) + bord8(nbArretes) +
-     hautSerpent(10*nbArretes) + basSerpent(10*nbArretes));
+     hautChauffe(10 * nbArretes) + basChauffe(10 * nbArretes) +
+     jonctionHaut(nbArretes) + jonctionBas(nbArretes));
