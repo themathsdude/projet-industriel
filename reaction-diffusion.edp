@@ -1,0 +1,115 @@
+// paramètres de la géométrie
+
+real Larg = 1;
+real Long = 10;
+real Lc = 1;
+
+// paramètres du maillage
+
+real h = 0.1;
+
+// paramètres de l'équation aux dérivées partielles
+
+real[int] u = [0, 0];
+
+// fonction générant la taille des éléments de bord
+
+func int[int] nombresElements(real Long, real Larg, real Lc, real h) {
+  int Nxfroid = (Long - Lc)/(2*h) + 1;
+  int Nyfroid = Larg / h + 1;
+  int Nxchaud = Lc / h + 1;
+  int Nychaud = Nyfroid;
+  int[int] nbrElms = [ Nxfroid, Nyfroid, Nxchaud, Nychaud ];
+  return nbrElms;
+}
+
+// construction des bords
+
+border bentrance(t = 0, 1) {
+  x = 0;
+  y = Larg - t*Larg;
+  label = 1; // entrée
+}
+
+border bf1(t = 0, 1) {
+  x = (Long - Lc)*t/2;
+  y = 0;
+  label = 0; // 0 neutre
+}
+
+border bf2(t = 0, 1) {
+  x = (Long - Lc)/2 - t*(Long - Lc)/2;
+  y = Larg;
+  label = 0;
+}
+
+border bf3(t = 0, 1) {
+  x = (Long + Lc)/2 + t*(Long - Lc)/2;
+  y = 0;
+  label = 0;
+}
+
+border bf4(t = 0, 1) {
+  x = Long - t*(Long - Lc)/2;
+  y = Larg;
+  label = 0;
+}
+
+border bc1(t = 0, 1) {
+  x = (Long - Lc)/2 + t*Lc;
+  y = 0;
+  label = 2; // chauffe
+}
+
+border bc2up(t = 0, 1) {
+  x = (Long + Lc)/2;
+  y = t*Larg;
+  label = 2;
+}
+
+border bc2down(t = 1, 0) {
+  x = (Long + Lc)/2;
+  y = t*Larg;
+  label = 2;
+}
+
+border bc3(t = 0, 1) {
+  x = (Long + Lc)/2 - t*Lc;
+  y = Larg;
+  label = 2;
+}
+
+border bc4down(t = 0, 1) {
+  x = (Long - Lc)/2;
+  y = Larg*(1-t);
+  label = 2;
+}
+
+border bc4up(t = 1, 0) {
+  x = (Long - Lc)/2;
+  y = Larg*(1-t);
+  label = 2;
+}
+
+border bexit(t = 0, 1) {
+  x = Long;
+  y = Larg*t;
+  label = 3;  // sortie
+}
+
+// construction des maillages
+
+int[int] nbrElms1 = nombresElements(Long, Larg, Lc, h);
+int Nxfroid, Nyfroid, Nxchaud, Nychaud;
+[ Nxfroid, Nyfroid, Nxchaud, Nychaud ] = nbrElms1;
+
+mesh Tfg = buildmesh(bentrance(Nyfroid) + bf1(Nxfroid) + bf2(Nxfroid) + bc4up(Nychaud));
+
+mesh Tfd = buildmesh(bf3(Nxfroid) + bexit(Nyfroid) + bf4(Nxfroid) + bc2down(Nychaud));
+
+mesh Tfc = buildmesh(bc1(Nxchaud) + bc2up(Nychaud) + bc3(Nxchaud) + bc4down(Nychaud));
+
+mesh Th = Tfg + Tfc + Tfd;
+
+plot(Th, wait = 1, cmm = "maillage Th");
+
