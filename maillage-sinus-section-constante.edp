@@ -10,7 +10,7 @@ real longueurTube3 = 1;  // longueur sur l'axe des abscisses sortie de chauffe
 
 // paramètres du maillage
 
-real h = 0.01;
+real h = 1;
 
 // paramètres de la section de chauffe
 
@@ -212,4 +212,4 @@ mesh Th = buildmesh(
 
 plot(Th, wait = true);
 
-savemesh(Th, "maille-sin-section-constante.msh");
+savemesh(Th, "mesh1.msh");
