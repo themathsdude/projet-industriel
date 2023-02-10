@@ -1,0 +1,160 @@
+real l0 = 0;
+real l = l0 + 10;
+real Lc = 10, LF = 20, LP = 20;
+real L0 = 0, L1 = LF, L2 = L1 +  Lc, L = LP + LF + Lc;
+
+int n = 50;
+
+// Omega F
+border OFd(t = L0, L1) {x = t; y = l0; label = 1;};
+border OFr(t = l0, l) {x = L1; y = t; label = 2;};
+border OFu(t = L1, L0) {x = t; y = l; label = 3;};
+border OFl(t = l, l0) {x = L0; y = t; label = 4;};
+mesh OmegaF = buildmesh(OFd(n) + OFr(n) + OFu(n) + OFl(n));
+//Omega C
+border OCd(t = L1, L2) {x = t; y = l0; label = 5;};
+border OCr(t = l0, l) {x = L2; y = t; label = 6;};
+border OCu(t = L2, L1) {x = t; y = l; label = 7;};
+border OCl(t = l, l0) {x = L1; y = t; label = 8;};
+mesh OmegaC = buildmesh(OCd(n) + OCr(n) + OCu(n) + OCl(n));
+// Omega P
+border OPd(t = L2, L) {x = t; y = l0; label = 9;};
+border OPr(t = l0, l) {x = L; y = t; label = 10;};
+border OPu(t = L, L2) {x = t; y = l; label = 11;};
+border OPl(t = l, l0) {x = L2; y = t; label = 12;};
+mesh OmegaP = buildmesh(OPd(n) + OPr(n) + OPu(n) + OPl(n));
+
+// plot(OFd(-n) + OFr(-n) + OFu(-n) + OFl(-n) 
+//     + OCd(n) + OCr(n) + OCu(n) + OCl(n) 
+//     + OPd(-n) + OPr(-n) + OPu(-n) + OPl(-n));
+// plot(OmegaF, OmegaC, OmegaP);
+
+// Parameters
+real dt = 0.05;
+real mu = 1;
+
+mesh Th = buildmesh(OFd(n) + OFu(n) + OFl(n) 
+    + OCd(n) + OCu(n) 
+    + OPd(n) + OPr(n) + OPu(n));
+plot(Th, wait = 1);
+ 
+//func beta = x > L0 & x < L1 ? 1 : (L1 < x & x < L2 ? 1/10 : 1/5);
+
+//Macro
+macro Grad(u) [dx(u), dy(u)] //
+
+// Fespace
+fespace Vh(Th, P1);
+Vh c, v, cc, f, b, ux, uy, beta;
+
+real dP = 10;
+real eta = 1;//1e-6;
+ux = -dP/(2*mu)*(y-l)*(y);
+uy = 0;
+
+real t = 0;
+
+// // Problem imp
+// problem dConvecDiff (c, v)
+//     = int2d(Th)(
+//           c*v
+//         + dt*[ux, uy]'*Grad(c)*v
+//     )
+//     +
+//     int2d(Th)(
+//         dt*beta*mu*Grad(c)'*Grad(v)
+//     )
+//     - int2d(Th)(
+//         cc*v 
+//     )
+//     - int1d(Th, 4)(
+//         dt*beta*eta*cc'*v
+//     )
+//     //+ on(1, 2, 3, 5, 7, 9, 11, 12, c=0)
+//     + on(4, c = t)
+//     ;
+
+
+real theta = 1;
+// Problem Exp
+problem dConvecDiffTps (c, v)
+    = int2d(Th)(
+          1e-12*c*v
+        + 1e-9*dt*( theta*dt*[ux, uy]'*Grad(c)*v
+        + theta*beta*Grad(c)'*Grad(v) 
+        )
+    )
+    - int1d(Th, 4)(
+        dt*theta*beta*[N.x, N.y]'*Grad(c)*v
+    )
+    + int2d(Th)(
+        
+        (1-theta)*dt*beta*mu*Grad(cc)'*Grad(v)
+        + 1e-9*(1-theta)*dt*[ux, uy]'*Grad(cc)*v 
+        - 1e-12*cc*v
+    )
+    - int1d(Th, 4)(
+        (1-theta)*dt*beta*eta*[N.x, N.y]'*Grad(cc)*v
+    )
+    //+ on(1, 2, 3, 5, 7, 9, 11, 12, c=0)
+    + on(4, c = t)
+    ;
+
+
+
+// //Time loop
+// cc = x;
+
+// for (int m = 0; m <= 2/dt; m++){
+//     // Update
+//     t = t+dt;
+//     f = 0;
+//     cc = c;
+//     beta =  x > L0 & x < L1 ? 1 : (L1 < x & x < L2 ? 1/10 : 0);
+//     // Solve
+//     dConvecDiffTps;
+
+//     // Plot
+//     plot(c, fill=1, wait=true);
+// }
+
+fespace Xh(Th, P2); //definition of the velocity component space
+fespace Mh(Th, P1); //definition of the pressure space
+Xh u2, v2;
+Xh u1, v1;
+Xh up1, up2;
+Mh p, q;
+
+int i=0;
+real alpha=1/dt;
+problem NS (u1, u2, p, v1, v2, q, solver=Crout, init=i)
+    = int2d(Th)(
+            alpha*(u1*v1 + u2*v2)
+        + mu * (
+              dx(u1)*dx(v1) + dy(u1)*dy(v1)
+            + dx(u2)*dx(v2) + dy(u2)*dy(v2)
+        )
+        - p*q*(0.000001)
+        - p*dx(v1) - p*dy(v2)
+        - dx(u1)*q - dy(u2)*q
+    )
+    + int2d(Th)(
+        - alpha*convect([up1,up2],-dt,up1)*v1
+        - alpha*convect([up1,up2],-dt,up2)*v2
+    )
+    + on(4, u1=ux, u2=0)
+    + on(3,7,11,1,5,9, u1=0, u2=0)
+    ;
+
+// Time loop
+for (i = 0; i <= 25; i++){
+    // Update
+    up1 = u1;
+    up2 = u2;
+
+    // Solve
+    NS;
+
+    
+    plot(coef=0.2, cmm="[u1,u2] and p", p, [u1, u2]);
+}
