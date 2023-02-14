@@ -29,22 +29,37 @@ mesh OmegaP = buildmesh(OPd(n) + OPr(n) + OPu(n) + OPl(n));
 //     + OPd(-n) + OPr(-n) + OPu(-n) + OPl(-n));
 // plot(OmegaF, OmegaC, OmegaP);
 
+// Viscosite dynamique interpolee 
+func real visc(real theta){
+    real a, b, c, d, e, f;
+    a = 2.29420356e-18;
+    b = -8.23607663e-16;
+    c = -2.71489819e-12;
+    d = 5.93544667e-10;
+    e = -4.52040818e-08;
+    f = 1.72321673e-06;
+
+    return a * theta^5 + b * theta^4 + c * theta^3 + d * theta^2 + e * theta + f;
+}
+
+func Theta = x > L0 & x < L1 ? 10 : (L1 < x & x < L2 ? 100 : 20);
+
 // Parameters
-real dt = 0.05;
+real T = 1; //intervalle [0, T] de temps
+real dt = 0.01;
 real mu = 1;
 
+
 mesh Th = buildmesh(OFd(n) + OFu(n) + OFl(n) 
-    + OCd(n) + OCu(n) 
+    + OCd(n/2) + OCu(n/2) 
     + OPd(n) + OPr(n) + OPu(n));
 plot(Th, wait = 1);
  
-//func beta = x > L0 & x < L1 ? 1 : (L1 < x & x < L2 ? 1/10 : 1/5);
-
 //Macro
 macro Grad(u) [dx(u), dy(u)] //
 
 // Fespace
-fespace Vh(Th, P1);
+fespace Vh(Th, P2);
 Vh c, v, cc, f, b, ux, uy, beta;
 
 real dP = 10;
@@ -75,50 +90,49 @@ real t = 0;
 //     ;
 
 
-real theta = 1;
-// Problem Exp
+real theta = 1/2;
+// Problem implicite
 problem dConvecDiffTps (c, v)
     = int2d(Th)(
           1e-12*c*v
         + 1e-9*dt*( theta*dt*[ux, uy]'*Grad(c)*v
-        + theta*beta*Grad(c)'*Grad(v) 
+        + visc(50)*theta*beta*Grad(c)'*Grad(v) 
         )
     )
     - int1d(Th, 4)(
-        dt*theta*beta*[N.x, N.y]'*Grad(c)*v
+        dt*theta*visc(50)*beta*[N.x, N.y]'*Grad(c)*v
     )
     + int2d(Th)(
         
-        (1-theta)*dt*beta*mu*Grad(cc)'*Grad(v)
+        visc(50)*(1-theta)*dt*beta*mu*Grad(cc)'*Grad(v)
         + 1e-9*(1-theta)*dt*[ux, uy]'*Grad(cc)*v 
         - 1e-12*cc*v
     )
     - int1d(Th, 4)(
-        (1-theta)*dt*beta*eta*[N.x, N.y]'*Grad(cc)*v
+        (1-theta)*dt*visc(50)*beta*eta*[N.x, N.y]'*Grad(cc)*v
     )
     //+ on(1, 2, 3, 5, 7, 9, 11, 12, c=0)
     + on(4, c = t)
     ;
 
 
+//Time loop
+cc = x;
 
-// //Time loop
-// cc = x;
+for (int m = 0; m <= T/dt; m++){
+    // Update
+    t = t+dt;
+    f = 0;
+    cc = c;
+    beta =  x > L0 & x < L1 ? 1 : (L1 < x & x < L2 ? 1/10 : 0);
+    // Solve
+    dConvecDiffTps;
 
-// for (int m = 0; m <= 2/dt; m++){
-//     // Update
-//     t = t+dt;
-//     f = 0;
-//     cc = c;
-//     beta =  x > L0 & x < L1 ? 1 : (L1 < x & x < L2 ? 1/10 : 0);
-//     // Solve
-//     dConvecDiffTps;
+    // Plot
+    plot(c, fill=1, wait=true);
+}
 
-//     // Plot
-//     plot(c, fill=1, wait=true);
-// }
-
-fespace Xh(Th, P2); //definition of the velocity component space
+/* fespace Xh(Th, P2); //definition of the velocity component space
 fespace Mh(Th, P1); //definition of the pressure space
 Xh u2, v2;
 Xh u1, v1;
@@ -126,10 +140,10 @@ Xh up1, up2;
 Mh p, q;
 
 int i=0;
-real alpha=1/dt;
+real pas=1/dt;
 problem NS (u1, u2, p, v1, v2, q, solver=Crout, init=i)
     = int2d(Th)(
-            alpha*(u1*v1 + u2*v2)
+            pas*(u1*v1 + u2*v2)
         + mu * (
               dx(u1)*dx(v1) + dy(u1)*dy(v1)
             + dx(u2)*dx(v2) + dy(u2)*dy(v2)
@@ -139,8 +153,8 @@ problem NS (u1, u2, p, v1, v2, q, solver=Crout, init=i)
         - dx(u1)*q - dy(u2)*q
     )
     + int2d(Th)(
-        - alpha*convect([up1,up2],-dt,up1)*v1
-        - alpha*convect([up1,up2],-dt,up2)*v2
+        - pas*convect([up1,up2],-dt,up1)*v1
+        - pas*convect([up1,up2],-dt,up2)*v2
     )
     + on(4, u1=ux, u2=0)
     + on(3,7,11,1,5,9, u1=0, u2=0)
@@ -157,4 +171,4 @@ for (i = 0; i <= 25; i++){
 
     
     plot(coef=0.2, cmm="[u1,u2] and p", p, [u1, u2]);
-}
+} */
