@@ -18,17 +18,15 @@ pbar = 1e4;
 rho = 1e3;
 tbar = 1;
 
-
 func real visc(real theta){
     real a, b, c, d, e, f;
-    a = 2.29420356e-18;
-    b = -8.23607663e-16;
-    c = -2.71489819e-12;
-    d = 5.93544667e-10;
-    e = -4.52040818e-08;
-    f = 1.72321673e-06;
+    a = -2.53958848e-16;
+    b = -2.76506905e-12;
+    c = 5.95400333e-10;
+    d = -4.52299564e-08;
+    e = 1.72329803e-06;
 
-    return a * theta^5 + b * theta^4 + c * theta^3 + d * theta^2 + e * theta + f;
+    return (a * theta^4 + b * theta^3 + c * theta^2 + d * theta + e)/(1.753*1e-6);
 }
 
 Re = ((xbar^2)/(visc(20)*tbar))^2;
@@ -36,7 +34,7 @@ A = xbar*pbar/(rho*visc(20)*ubar);
 
 // labels des bords du maillage
 
-mesh Th = readmesh("mesh2.msh");
+mesh Th = readmesh("mesh1.msh");
 
 real alpha = pi / 4;     // angle incidence
 real longueurTube1 = 1;  // longueur du tube d'injection
@@ -126,8 +124,8 @@ problem NS(u1, u2, p, v1, v2, q, solver = Crout,
            int2d(Th)(
             pas * (u1 * v1 + u2 * v2) +
             mu * (dx(u1) * dx(v1) + dy(u1) * dy(v1) +
-                  dx(u2) * dx(v2) + dy(u2) * dy(v2)) -
-            p * q * (0.000001) 
+                  dx(u2) * dx(v2) + dy(u2) * dy(v2)) 
+            - p * q * (0.000001) 
             - p * dx(v1) - p * dy(v2)
             -  dx(u1) * q - dy(u2) * q) +
            int2d(Th)(
@@ -148,3 +146,74 @@ for (i = 0; i <= 25; i++) {
 
   plot(coef = 0.2, cmm = "[u1,u2] and p", p, [ u1, u2 ], wait = 1, fill = 1);
 }
+
+// finite element spaces et functions
+// comment the lines depdending of the choice 
+// -- P2/P1 
+// fespace Xh(Th,P2);
+// fespace Mh(Th,P1);
+// real gammap = 0.0;
+
+// -- P1/P1 
+// fespace Xh(Th,P1);
+// fespace Mh(Th,P1);
+// real gammap = 0.01;
+
+// Xh ux, uy, vx, vy, uxo, uyo;
+// Mh p, q, uxplot, uyplot;
+
+// real t=0;
+// // boundary data 
+// func uxdata = 2.*x*(1-x)+cos(pi*t);
+
+
+// // parameter to fix the pressure mean 
+// real epsilon = 1e-10;
+
+// // Stokes variational problem 
+// problem Stokes([ux, uy, p], [vx, vy, q]) = 
+  
+//   int2d(Th)( (1./dt)*(ux*vx + uy*vy) + mu * (dx(ux)*dx(vx) + dy(ux)*dy(vx) + dx(uy)*dx(vy)+ dy(uy)*dy(vy)))
+//   - int2d(Th)(p*div(vx,vy)) + int2d(Th)(div(ux,uy)*q)
+  
+//   // fix the pressure mean 
+//   + int2d(Th)( epsilon * p*q )
+  
+//   // P1/P1 stabilization term. Only for P1/P1 FEM 
+//   + int2d(Th)( (gammap*hTriangle^2/mu) * (dx(p)*dx(q) + dy(p)*dy(q) ))
+  
+//   // rhs
+//   -int2d(Th)( (1./dt)*(uxo*vx + uyo*vy) )
+  
+//   // boundary conditions 
+//   + on(1,2,4, ux=0, uy =0 )
+//   + on(3, ux=uxdata, uy =0 ) ;
+
+
+// real T=2.0;
+// int Niter = T/dt;
+
+// uxo = uxdata;
+// uyo = 0;
+
+// for (int n=0; n< Niter;++n) {
+
+//   // update time step
+//   t += dt ;
+  
+//   // solve Stokes system 
+//   Stokes;
+
+//   // update old time levels
+//   uxo = ux;
+//   uyo = uy;
+
+//   // velocity plot
+//   uxplot = ux;
+//   uyplot = uy;
+//   plot([uxplot,uyplot],wait=1);
+  
+//   // pressure plot 
+//   plot(p,wait=1,fill=true,value=true);
+  
+//  }
