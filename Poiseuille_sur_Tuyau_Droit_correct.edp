@@ -38,7 +38,7 @@ func real visc(real theta){
     d = -4.52299564e-08;
     e = 1.72329803e-06;
 
-    return a * theta^4 + b * theta^3 + c * theta^2 + d * theta + e;
+    return (a * theta^4 + b * theta^3 + c * theta^2 + d * theta + e)/(1.753*1e-6);
 }
 
 func Theta = x > L0 & x < L1 ? 10 : (L1 < x & x < L2 ? 100 : 20);
