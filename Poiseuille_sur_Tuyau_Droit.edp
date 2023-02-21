@@ -32,14 +32,13 @@ mesh OmegaP = buildmesh(OPd(n) + OPr(n) + OPu(n) + OPl(n));
 // Viscosite dynamique interpolee 
 func real visc(real theta){
     real a, b, c, d, e, f;
-    a = 2.29420356e-18;
-    b = -8.23607663e-16;
-    c = -2.71489819e-12;
-    d = 5.93544667e-10;
-    e = -4.52040818e-08;
-    f = 1.72321673e-06;
+    a = -2.53958848e-16;
+    b = -2.76506905e-12;
+    c = 5.95400333e-10;
+    d = -4.52299564e-08;
+    e = 1.72329803e-06;
 
-    return a * theta^5 + b * theta^4 + c * theta^3 + d * theta^2 + e * theta + f;
+    return a * theta^4 + b * theta^3 + c * theta^2 + d * theta + e;
 }
 
 func Theta = x > L0 & x < L1 ? 10 : (L1 < x & x < L2 ? 100 : 20);
@@ -90,7 +89,7 @@ real t = 0;
 //     ;
 
 
-real theta = 1/2;
+real theta = 1;
 // Problem implicite
 problem dConvecDiffTps (c, v)
     = int2d(Th)(
