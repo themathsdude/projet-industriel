@@ -4,7 +4,7 @@ real Lc = 10, LF = 20, LP = 20;
 real L0 = 0, L1 = LF, L2 = L1 +  Lc, L = LP + LF + Lc;
 
 int n = 50;
-   //test
+   //test2222
 // Omega F
 border OFd(t = L0, L1) {x = t; y = l0; label = 1;};
 border OFr(t = l0, l) {x = L1; y = t; label = 2;};
