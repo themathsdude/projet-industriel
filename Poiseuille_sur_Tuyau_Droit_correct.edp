@@ -5,6 +5,22 @@ real L0 = 0, L1 = LF, L2 = L1 +  Lc, L = LP + LF + Lc;
 
 int n = 50;
 
+// Constantes d'adimensionnement
+real vbar, xbar, ubar, pbar, tbar, eta, gamma;
+
+vbar = 1e-12; //volumes
+eta = 1.005e-6; //Viscosite dynamique (eau a 20 degres)
+xbar = 1e-6; //Diametre canaux
+ubar = 1e-3; //Vitesse de l’ecoulement
+pbar = 1e4; //pression caracteristique 
+tbar = 1; 
+gamma = 100; //viscosite/diffusion
+
+cout << "xbar^2/tbar = " << xbar^2/tbar << endl;
+cout << "(ubar*xbar) = " << ubar*xbar << endl << endl;
+
+real Re = xbar*ubar/eta;
+
 // Omega F
 border OFd(t = L0, L1) {x = t; y = l0; label = 1;};
 border OFr(t = l0, l) {x = L1; y = t; label = 2;};
@@ -61,8 +77,7 @@ macro Grad(u) [dx(u), dy(u)] //
 fespace Vh(Th, P2);
 Vh c, v, cc, f, b, ux, uy, beta;
 
-real dP = 10;
-real eta = 1;//1e-6;
+real dP = 1;
 ux = -dP/(2*mu)*(y-l)*(y);
 uy = 0;
 
@@ -92,31 +107,54 @@ real t = 0;
 //     ;
 
 
-real theta = 1;
-// Problem implicite
+real tschema = 1; //pour schema inplicite, explicite au pt milieu
+
+/* // Problem implicite 
 problem dConvecDiffTps (c, v)
     = int2d(Th)(
           1e-12*c*v
-        + 1e-9*dt*( theta*dt*[ux, uy]'*Grad(c)*v
-        + theta*beta*Grad(c)'*Grad(v) 
+        + 1e-9*dt*( tschema*dt*[ux, uy]'*Grad(c)*v
+        + tschema*beta*Grad(c)'*Grad(v) 
         )
     )
     - int1d(Th, 4)(
-        1e-9*dt*theta*beta*[N.x, N.y]'*Grad(c)*v
+        1e-9*dt*tschema*beta*[N.x, N.y]'*Grad(c)*v
     )
     + int2d(Th)(
         
-        1e-9*(1-theta)*dt*beta*mu*Grad(cc)'*Grad(v)
-        + 1e-9*(1-theta)*dt*[ux, uy]'*Grad(cc)*v 
+        1e-9*(1-tschema)*dt*beta*mu*Grad(cc)'*Grad(v)
+        + 1e-9*(1-tschema)*dt*[ux, uy]'*Grad(cc)*v 
         - 1e-12*cc*v
     )
     - int1d(Th, 4)(
-        1e-9*(1-theta)*dt*beta*[N.x, N.y]'*Grad(cc)*v
+        1e-9*(1-tschema)*dt*beta*[N.x, N.y]'*Grad(cc)*v
+    )
+    //+ on(1, 2, 3, 5, 7, 9, 11, 12, c=0)
+    + on(4, c = t)
+    ;  */
+
+// Problem implicite coeffs ad
+problem dConvecDiffTps (c, v)
+    = int2d(Th)(
+          (xbar^2/tbar)*c*v
+        + (ubar*xbar)*dt*(tschema*[ux, uy]'*Grad(c)*v
+        + tschema*visc(Theta)*gamma*Grad(c)'*Grad(v) 
+        )
+    )
+    - int1d(Th, 4)(
+        (ubar*xbar)*dt*tschema*visc(Theta)*gamma*[N.x, N.y]'*Grad(c)*v
+    )
+    + int2d(Th)(
+        - (xbar^2/tbar)*cc*v
+        + (ubar*xbar)*(1-tschema)*dt*[ux, uy]'*Grad(cc)*v 
+        + (ubar*xbar)*(1-tschema)*dt*visc(Theta)*gamma*Grad(cc)'*Grad(v)
+    )
+    - int1d(Th, 4)(
+        (ubar*xbar)*(1-tschema)*dt*visc(Theta)*gamma*[N.x, N.y]'*Grad(cc)*v
     )
     //+ on(1, 2, 3, 5, 7, 9, 11, 12, c=0)
     + on(4, c = t)
     ; 
-
 
 //Time loop
 cc = 0;
