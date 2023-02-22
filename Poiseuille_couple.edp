@@ -14,7 +14,7 @@ xbar = 1e-6; //Diametre canaux
 ubar = 1e-3; //Vitesse de l’ecoulement
 pbar = 1e4; //pression caracteristique 
 tbar = 1; 
-gamma = 100; //viscosite/diffusion
+gamma = 1; //viscosite/diffusion
 rho = 1e3;
 
 cout << "xbar^2/tbar = " << xbar^2/tbar << endl;
@@ -79,6 +79,7 @@ macro Grad(u) [dx(u), dy(u)] //
 fespace Vh(Th, P2);
 Vh c, v, cc, uxc, uyc, b, beta;
 
+beta =  L1 < x & x < L2 ? 1: 0.1;
 real dP = 1;
 func real ux1(real mu){
     if( l0 < y & y < l/2 ){return (-dP/(2*mu)*(y-l/2)*(y));}
@@ -145,19 +146,19 @@ problem dConvecDiffTps (c, v)
     = int2d(Th)(
           (xbar^2/tbar)*c*v
         + (ubar*xbar)*dt*(tschema*[uxc, uyc]'*Grad(c)*v
-        + tschema*visc(Theta)*gamma*Grad(c)'*Grad(v) 
+        + tschema*gamma*beta*Grad(c)'*Grad(v) 
         )
     )
     - int1d(Th, 4)(
-        (ubar*xbar)*dt*tschema*visc(Theta)*gamma*[N.x, N.y]'*Grad(c)*v
+        (ubar*xbar)*dt*tschema*gamma*beta*[N.x, N.y]'*Grad(c)*v
     )
     + int2d(Th)(
         - (xbar^2/tbar)*cc*v
-        + (ubar*xbar)*(1-tschema)*dt*[ux1(mu), uy1]'*Grad(cc)*v 
-        + (ubar*xbar)*(1-tschema)*dt*visc(Theta)*gamma*Grad(cc)'*Grad(v)
+        + (ubar*xbar)*(1-tschema)*dt*[uxc, uyc]'*Grad(cc)*v 
+        + (ubar*xbar)*(1-tschema)*dt*gamma*beta*Grad(cc)'*Grad(v)
     )
     - int1d(Th, 4)(
-        (ubar*xbar)*(1-tschema)*dt*visc(Theta)*gamma*[N.x, N.y]'*Grad(cc)*v
+        (ubar*xbar)*(1-tschema)*dt*gamma*beta*[N.x, N.y]'*Grad(cc)*v
     )
     //+ on(1, 2, 3, 5, 7, 9, 11, 12, c=0)
     + on(4, c = t)
@@ -228,7 +229,7 @@ problem Stokes([ux, uy, p], [vx, vy, q]) =
     + int2d(Th)( epsilon * p*q )
     
     //   // P1/P1 stabilization term. Only for P1/P1 FEM 
-    //+ int2d(Th)( (gammap*hTriangle^2/mu) * (dx(p)*dx(q) + dy(p)*dy(q) ))
+    + int2d(Th)( (gammap*hTriangle^2/mu) * (dx(p)*dx(q) + dy(p)*dy(q) ))
     
     
     // boundary conditions 
@@ -242,10 +243,8 @@ T=2.0;
 int Niter = T/dt;
 
 uxo = ux1(mu);
-uyo = 0;
+uyo = uy1;
 
-uxc = ux1(mu);
-uyc = uy1;
 for (int n=0; n< Niter;++n) {
 
   // update time step
