@@ -80,7 +80,7 @@ fespace Vh(Th, P1);
 Vh c, v, cc, uxc, uyc, b, beta;
 
 beta =  L1 < x & x < L2 ? 1: 0.1;
-real dP = 1;
+real dP = 0.5;
 
 //
 func real ux1(real mu){
@@ -248,6 +248,7 @@ int Niter = T/dt;
 uxo = ux1(mu);
 uyo = uy1;
 
+
 for (int n=0; n< Niter;++n) {
 
   // update time step
@@ -257,8 +258,8 @@ for (int n=0; n< Niter;++n) {
   Stokes;
 
   // update values for u in concentration
-  uxc = ux;
-  uyc = uy;
+  uxc = l0 < y & y < l/2 ? ux : 0;
+  uyc = l0 < y & y < l/2 ? uy : 0;
 
   // Solve
   dConvecDiffTps;
