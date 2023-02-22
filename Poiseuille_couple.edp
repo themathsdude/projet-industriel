@@ -14,7 +14,7 @@ xbar = 1e-6; //Diametre canaux
 ubar = 1e-3; //Vitesse de l’ecoulement
 pbar = 1e4; //pression caracteristique 
 tbar = 1; 
-gamma = 1; //viscosite/diffusion
+gamma = 0.1; //viscosite/diffusion
 rho = 1e3;
 
 cout << "xbar^2/tbar = " << xbar^2/tbar << endl;
@@ -61,7 +61,7 @@ func real visc(real theta){
 func Theta = x > L0 & x < L1 ? 10 : (L1 < x & x < L2 ? 100 : 20);
 
 // Parameters
-real T = 1; //intervalle [0, T] de temps
+real T = 0.1; //intervalle [0, T] de temps
 real dt = 0.01;
 func mu =  l0 < y & y < l/2 ? 1 : 2;
 // real mu = 1;
@@ -76,11 +76,13 @@ plot(Th, wait = 1);
 macro Grad(u) [dx(u), dy(u)] //
 
 // Fespace
-fespace Vh(Th, P2);
+fespace Vh(Th, P1);
 Vh c, v, cc, uxc, uyc, b, beta;
 
 beta =  L1 < x & x < L2 ? 1: 0.1;
 real dP = 1;
+
+//
 func real ux1(real mu){
     if( l0 < y & y < l/2 ){return (-dP/(2*mu)*(y-l/2)*(y));}
     else{return (-dP/(2*mu)*(y-l)*(y-l/2));}
@@ -156,6 +158,7 @@ problem dConvecDiffTps (c, v)
         - (xbar^2/tbar)*cc*v
         + (ubar*xbar)*(1-tschema)*dt*[uxc, uyc]'*Grad(cc)*v 
         + (ubar*xbar)*(1-tschema)*dt*gamma*beta*Grad(cc)'*Grad(v)
+
     )
     - int1d(Th, 4)(
         (ubar*xbar)*(1-tschema)*dt*gamma*beta*[N.x, N.y]'*Grad(cc)*v
@@ -187,15 +190,15 @@ macro div(u,v) ( dx(u)+dy(v) )//
 
 // finite element spaces et functions
 // comment the lines depdending of the choice 
-// -- P2/P1 
-fespace Xh(Th,P2);
+// -- P2/P1 ---
+/* fespace Xh(Th,P2);
 fespace Mh(Th,P1);
-real gammap = 0.0;
+real gammap = 0.0; */
 
 // -- P1/P1 
-// fespace Xh(Th,P1);
-// fespace Mh(Th,P1);
-// real gammap = 0.01;
+fespace Xh(Th,P1);
+fespace Mh(Th,P1);
+real gammap = 0.01;
 
 Xh ux, uy, vx, vy, uxo, uyo;
 Mh p, q, uxplot, uyplot;
@@ -263,7 +266,7 @@ for (int n=0; n< Niter;++n) {
   // update old time levels
   uxo = ux;
   uyo = uy;
-  //cc = c;
+  cc = c;
   
   // velocity plot
   uxplot = ux;
