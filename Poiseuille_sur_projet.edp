@@ -104,6 +104,10 @@ for (int m = 0; m <= 1 / dt; m++) {
     //plot(c, fill = 1, wait = true);
 }
 
+// macros  
+macro dn(u) ( dx(u)*N.x+dy(u)*N.y )//
+macro div(u,v) ( dx(u)+dy(v) )//
+  
 fespace Xh(Th, P2);  // definition of the velocity component space
 fespace Mh(Th, P1);  // definition of the pressure space
 Xh u2, v2;
