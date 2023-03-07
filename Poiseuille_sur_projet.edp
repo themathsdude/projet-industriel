@@ -155,12 +155,12 @@ tschema = 1;
 problem Stokes([ux, uy, p], [vx, vy, q]) = 
     int2d(Th)( 
         sqrt(Re)*(1./dt)*(ux*vx + uy*vy)
-        + tschema * (dx(ux)*dx(vx) + dy(ux)*dy(vx) + dx(uy)*dx(vy)+ dy(uy)*dy(vy))
+        + tschema * beta * (dx(ux)*dx(vx) + dy(ux)*dy(vx) + dx(uy)*dx(vy)+ dy(uy)*dy(vy))
     )
     // 
     + int2d(Th)( 
         - sqrt(Re)*(1./dt)*(uxo*vx + uyo*vy)
-        + (1 - tschema) * (dx(uxo)*dx(vx) + dy(uxo)*dy(vx) + dx(uyo)*dx(vy)+ dy(uyo)*dy(vy))
+        + (1 - tschema) * beta * (dx(uxo)*dx(vx) + dy(uxo)*dy(vx) + dx(uyo)*dx(vy)+ dy(uyo)*dy(vy))
     )
 
     // pressure

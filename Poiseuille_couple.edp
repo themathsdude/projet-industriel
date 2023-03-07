@@ -243,8 +243,8 @@ problem Stokes([ux, uy, p], [vx, vy, q]) =
     ;
 
 func real ux1(){
-    if( l0 < y & y < l/3 ){return (-dP/(2*1)*(y-l/4)*(y));}
-    else{return (-dP/(2*2)*(y-l)*(y-l/4));}
+    if( l0 < y & y < l/2 ){return (-dP/(2*1)*(y-l/2)*(y));}
+    else{return (-dP/(2*2)*(y-l)*(y-l/2));}
 }
 
 T=1;
@@ -263,8 +263,8 @@ for (int n=0; n< Niter;++n) {
   Stokes;
 
   // update values for u in concentration
-  uxc = l0 < y & y < l/4 ? ux : 0;
-  uyc = l0 < y & y < l/4 ? uy : 0;
+  uxc = l0 < y & y < l/2 ? ux : 0;
+  uyc = l0 < y & y < l/2 ? uy : 0;
 
   // Solve
   dConvecDiffTps;
