@@ -243,7 +243,7 @@ problem Stokes([ux, uy, p], [vx, vy, q]) =
     ;
 
 func real ux1(){
-    if( l0 < y & y < l/2 ){return (-dP/(2*0.1)*(y-l/2)*(y));}
+    if( l0 < y & y < l/2 ){return (-dP/(2*1)*(y-l/2)*(y));}
     else{return (-dP/(2*2)*(y-l)*(y-l/2));}
 }
 
@@ -278,9 +278,11 @@ for (int n=0; n< Niter;++n) {
   uxplot = ux;
   uyplot = uy;
   
-  plot([uxplot,uyplot]);
+  // plot([uxplot,uyplot]);
+
   // concentration  plot
-  // plot(c, fill=1, wait=true);
+  plot(c, fill=1, wait=true);
+
   // pressure plot 
   //plot(p,fill=true,value=true);
   
