@@ -3,7 +3,9 @@ real l = l0 + 1;
 real Lc = 1, LF = 2, LP = 2;
 real L0 = 0, L1 = LF, L2 = L1 +  Lc, L = LP + LF + Lc;
 
-int n = 50;
+int nF = 30;
+int nC = 15;
+int nP = 30;
 
 // Constantes d'adimensionnement
 real vbar, xbar, ubar, pbar, tbar, eta, gamma, rho;
@@ -14,7 +16,7 @@ xbar = 1e-6; //Diametre canaux
 ubar = 1e-3; //Vitesse de l’ecoulement
 pbar = 1e4; //pression caracteristique 
 tbar = 1; 
-gamma = 1e-5; //viscosite/diffusion
+gamma = 1e-3; //viscosite/diffusion
 rho = 1e3;
 
 cout << "xbar^2/tbar = " << xbar^2/tbar << endl;
@@ -27,19 +29,19 @@ border OFd(t = L0, L1) {x = t; y = l0; label = 1;};
 border OFr(t = l0, l) {x = L1; y = t; label = 2;};
 border OFu(t = L1, L0) {x = t; y = l; label = 3;};
 border OFl(t = l, l0) {x = L0; y = t; label = 4;};
-mesh OmegaF = buildmesh(OFd(n) + OFr(n) + OFu(n) + OFl(n));
+mesh OmegaF = buildmesh(OFd(nF) + OFr(nF) + OFu(nF) + OFl(nF));
 //Omega C
 border OCd(t = L1, L2) {x = t; y = l0; label = 5;};
 border OCr(t = l0, l) {x = L2; y = t; label = 6;};
 border OCu(t = L2, L1) {x = t; y = l; label = 7;};
 border OCl(t = l, l0) {x = L1; y = t; label = 8;};
-mesh OmegaC = buildmesh(OCd(n) + OCr(n) + OCu(n) + OCl(n));
+mesh OmegaC = buildmesh(OCd(nC) + OCr(nC) + OCu(nC) + OCl(nC));
 // Omega P
 border OPd(t = L2, L) {x = t; y = l0; label = 9;};
 border OPr(t = l0, l) {x = L; y = t; label = 10;};
 border OPu(t = L, L2) {x = t; y = l; label = 11;};
 border OPl(t = l, l0) {x = L2; y = t; label = 12;};
-mesh OmegaP = buildmesh(OPd(n) + OPr(n) + OPu(n) + OPl(n));
+mesh OmegaP = buildmesh(OPd(nP) + OPr(nP) + OPu(nP) + OPl(nP));
 
 // plot(OFd(-n) + OFr(-n) + OFu(-n) + OFl(-n) 
 //     + OCd(n) + OCr(n) + OCu(n) + OCl(n) 
@@ -67,9 +69,9 @@ real dt = 0.01;
 real mu = 1;
 // real mu2 = 2;
 
-mesh Th = buildmesh(OFd(n) + OFu(n) + OFl(n) 
-    + OCd(n/2) + OCu(n/2) 
-    + OPd(n) + OPr(n) + OPu(n));
+mesh Th = buildmesh(OFd(nF) + OFu(nF) + OFl(nF) 
+    + OCd(nC) + OCu(nC) 
+    + OPd(nP) + OPr(nP) + OPu(nP));
 plot(Th, wait = 1);
  
 //Macro
@@ -80,7 +82,7 @@ fespace Vh(Th, P1);
 Vh c, v, cc, uxc, uyc, b, beta;
 
 beta =  L1 < x & x < L2 ? 1: 0.1;
-real dP = 0.5;
+real dP = 5;
 
 //
 func real ux1(real mu){
