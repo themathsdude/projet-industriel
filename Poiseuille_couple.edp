@@ -218,12 +218,12 @@ problem Stokes([ux, uy, p], [vx, vy, q]) =
 
     int2d(Th)( 
         sqrt(Re)*(1./dt)*(ux*vx + uy*vy)
-        + tschema * (dx(ux)*dx(vx) + dy(ux)*dy(vx) + dx(uy)*dx(vy)+ dy(uy)*dy(vy))
+        + tschema * beta * (dx(ux)*dx(vx) + dy(ux)*dy(vx) + dx(uy)*dx(vy)+ dy(uy)*dy(vy))
     )
     // 
     + int2d(Th)( 
         - sqrt(Re)*(1./dt)*(uxo*vx + uyo*vy)
-        + (1 - tschema) * (dx(uxo)*dx(vx) + dy(uxo)*dy(vx) + dx(uyo)*dx(vy)+ dy(uyo)*dy(vy))
+        + (1 - tschema) * beta * (dx(uxo)*dx(vx) + dy(uxo)*dy(vx) + dx(uyo)*dx(vy)+ dy(uyo)*dy(vy))
     )
 
     // pressure
@@ -243,11 +243,11 @@ problem Stokes([ux, uy, p], [vx, vy, q]) =
     ;
 
 func real ux1(){
-    if( l0 < y & y < l/2 ){return (-dP/(2*1)*(y-l/2)*(y));}
-    else{return (-dP/(2*2)*(y-l)*(y-l/2));}
+    if( l0 < y & y < l/3 ){return (-dP/(2*1)*(y-l/4)*(y));}
+    else{return (-dP/(2*2)*(y-l)*(y-l/4));}
 }
 
-T=0.5;
+T=1;
 int Niter = T/dt;
 
 uxo = ux1();
@@ -263,8 +263,8 @@ for (int n=0; n< Niter;++n) {
   Stokes;
 
   // update values for u in concentration
-  uxc = l0 < y & y < l/2 ? ux : 0;
-  uyc = l0 < y & y < l/2 ? uy : 0;
+  uxc = l0 < y & y < l/4 ? ux : 0;
+  uyc = l0 < y & y < l/4 ? uy : 0;
 
   // Solve
   dConvecDiffTps;
