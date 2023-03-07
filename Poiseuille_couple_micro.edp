@@ -1,0 +1,330 @@
+real l0 = 0;
+real l = l0 + 1;
+real Lc = 1, LF = 2, LP = 2;
+real L0 = 0, L1 = LF, L2 = L1 +  Lc, L = LP + LF + Lc;
+
+int n = 50;
+
+// Constantes d'adimensionnement
+real vbar, xbar, ubar, pbar, tbar, eta, gamma, rho;
+
+vbar = 1e-12; //volumes
+eta = 1.005e-6; //Viscosite dynamique (eau a 20 degres)
+xbar = 1e-6; //Diametre canaux
+ubar = 1e-3; //Vitesse de l’ecoulement
+pbar = 1e4; //pression caracteristique 
+tbar = 1; 
+gamma = 1e-3; //viscosite/diffusion
+rho = 1e3;
+
+cout << "xbar^2/tbar = " << xbar^2/tbar << endl;
+cout << "(ubar*xbar) = " << ubar*xbar << endl << endl;
+
+real Re = xbar*ubar/eta;
+
+// Omega F
+border OFd(t = L0, L1) {x = t; y = l0; label = 1;};
+border OFr(t = l0, l) {x = L1; y = t; label = 2;};
+border OFu(t = L1, L0) {x = t; y = l; label = 3;};
+border OFl(t = l, l0) {x = L0; y = t; label = 4;};
+mesh OmegaF = buildmesh(OFd(n) + OFr(n) + OFu(n) + OFl(n));
+//Omega C
+border OCd(t = L1, L2) {x = t; y = l0; label = 5;};
+border OCr(t = l0, l) {x = L2; y = t; label = 6;};
+border OCu(t = L2, L1) {x = t; y = l; label = 7;};
+border OCl(t = l, l0) {x = L1; y = t; label = 8;};
+mesh OmegaC = buildmesh(OCd(n) + OCr(n) + OCu(n) + OCl(n));
+// Omega P
+border OPd(t = L2, L) {x = t; y = l0; label = 9;};
+border OPr(t = l0, l) {x = L; y = t; label = 10;};
+border OPu(t = L, L2) {x = t; y = l; label = 11;};
+border OPl(t = l, l0) {x = L2; y = t; label = 12;};
+mesh OmegaP = buildmesh(OPd(n) + OPr(n) + OPu(n) + OPl(n));
+
+// plot(OFd(-n) + OFr(-n) + OFu(-n) + OFl(-n) 
+//     + OCd(n) + OCr(n) + OCu(n) + OCl(n) 
+//     + OPd(-n) + OPr(-n) + OPu(-n) + OPl(-n));
+// plot(OmegaF, OmegaC, OmegaP);
+
+// Viscosite dynamique interpolee 
+func real visc(real theta){
+    real a, b, c, d, e, f;
+    a = -2.53958848e-16;
+    b = -2.76506905e-12;
+    c = 5.95400333e-10;
+    d = -4.52299564e-08;
+    e = 1.72329803e-06;
+
+    return (a * theta^4 + b * theta^3 + c * theta^2 + d * theta + e)/(1.753*1e-6);
+}
+
+func Theta = x > L0 & x < L1 ? 10 : (L1 < x & x < L2 ? 100 : 20);
+
+// Parameters
+real T = 0.5; //intervalle [0, T] de temps
+real dt = 0.01;
+// func mu =  l0 < y & y < l/2 ? 1 : 1;
+real mu = 1;
+// real mu2 = 2;
+
+mesh Th = buildmesh(OFd(n) + OFu(n) + OFl(n) 
+    + OCd(n/2) + OCu(n/2) 
+    + OPd(n) + OPr(n) + OPu(n));
+plot(Th, wait = 1);
+ 
+//Macro
+macro Grad(u) [dx(u), dy(u)] //
+
+// Fespace
+fespace Vh(Th, P1);
+Vh c, v, cc, uxc, uyc, b, beta;
+
+beta =  L1 < x & x < L2 ? 1: 0.1;
+real dP = 0.5;
+
+//
+func real ux1(real mu){
+    if( l0 < y & y < l/2 ){return (-dP/(2*mu)*(y-l/2)*(y));}
+    else{return (-dP/(2*mu)*(y-l)*(y-l/2));}
+}
+// ux1 = -dP/(2*mu)*(y-l)*(y);
+func uy1 = 0;
+
+real t = 0;
+
+// // Problem exp
+// problem dConvecDiff (c, v)
+//     = int2d(Th)(
+//           c*v
+//         )
+//     +
+//     int2d(Th)(
+//         dt*[ux, uy]'*Grad(cc)*v
+//     )
+//     +
+//     int2d(Th)(
+//         dt*beta*mu*Grad(cc)'*Grad(v)
+//     )
+//     - int2d(Th)(
+//         cc*v 
+//     )
+//     - int1d(Th, 4)(
+//         dt*beta*eta*cc'*v
+//     )
+//     //+ on(1, 2, 3, 5, 7, 9, 11, 12, c=0)
+//     + on(4, c = t)
+//     ;
+
+
+real tschema = 1; //pour schema inplicite, explicite au pt milieu
+
+/* // Problem implicite 
+problem dConvecDiffTps (c, v)
+    = int2d(Th)(
+          1e-12*c*v
+        + 1e-9*dt*( tschema*dt*[ux1, uy1]'*Grad(c)*v
+        + tschema*beta*Grad(c)'*Grad(v) 
+        )
+    )
+    - int1d(Th, 4)(
+        1e-9*dt*tschema*beta*[N.x, N.y]'*Grad(c)*v
+    )
+    + int2d(Th)(
+        
+        1e-9*(1-tschema)*dt*beta*mu*Grad(cc)'*Grad(v)
+        + 1e-9*(1-tschema)*dt*[ux1, uy1]'*Grad(cc)*v 
+        - 1e-12*cc*v
+    )
+    - int1d(Th, 4)(
+        1e-9*(1-tschema)*dt*beta*[N.x, N.y]'*Grad(cc)*v
+    )
+    //+ on(1, 2, 3, 5, 7, 9, 11, 12, c=0)
+    + on(4, c = t)
+    ;  */
+
+
+// Problem implicite coeffs ad
+problem dConvecDiffTps (c, v)
+    = int2d(Th)(
+          (xbar^2/tbar)*c*v
+        + (ubar*xbar)*dt*(tschema*[uxc, uyc]'*Grad(c)*v
+        + tschema*gamma*beta*Grad(c)'*Grad(v) 
+        )
+    )
+    - int1d(Th, 4)(
+        (ubar*xbar)*dt*tschema*gamma*beta*[N.x, N.y]'*Grad(c)*v
+    )
+    + int2d(Th)(
+        - (xbar^2/tbar)*cc*v
+        + (ubar*xbar)*(1-tschema)*dt*[uxc, uyc]'*Grad(cc)*v 
+        + (ubar*xbar)*(1-tschema)*dt*gamma*beta*Grad(cc)'*Grad(v)
+
+    )
+    - int1d(Th, 4)(
+        (ubar*xbar)*(1-tschema)*dt*gamma*beta*[N.x, N.y]'*Grad(cc)*v
+    )
+    //+ on(1, 2, 3, 5, 7, 9, 11, 12, c=0)
+    + on(4, c = t)
+    ; 
+
+//Time loop
+// cc = 0;
+// // beta =  L1 < x & x < L2 ? visc(100) : visc(20);
+// beta =  L1 < x & x < L2 ? 1: 0.1;
+// for (int m = 0; m <= T/dt; m++){
+//     // Update
+//     t = t+dt;
+//     f = 0;
+//     cc = c;
+   
+//     // Solve
+//     dConvecDiffTps;
+
+//     // Plot
+//     //plot(c, fill=1, wait=true);
+// }
+
+// macros  
+macro dn(u) ( dx(u)*N.x+dy(u)*N.y )//
+macro div(u,v) ( dx(u)+dy(v) )//
+
+// finite element spaces et functions
+// comment the lines depdending of the choice 
+// -- P2/P1 ---
+fespace Xh(Th,P2);
+fespace Mh(Th,P1);
+real gammap = 0.0;
+
+// -- P1/P1 
+// fespace Xh(Th,P1);
+// fespace Mh(Th,P1);
+// real gammap = 0.01;
+
+Xh ux, uy, vx, vy, uxo, uyo;
+Mh p, q, uxplot, uyplot;
+
+t=0;
+// boundary data 
+func uxdata = 2.*x*(1-x)+cos(pi*t);
+func ux2 = -dP/(2*mu)*(y-l)*(y);
+func uy2 = 0;
+
+
+// parameter to fix the pressure mean 
+real epsilon = 1e-10;
+tschema = 1;
+// Stokes variational problem 
+problem Stokes([ux, uy, p], [vx, vy, q]) = 
+
+    int2d(Th)( 
+        sqrt(Re)*(1./dt)*(ux*vx + uy*vy)
+        + tschema * beta * (dx(ux)*dx(vx) + dy(ux)*dy(vx) + dx(uy)*dx(vy)+ dy(uy)*dy(vy))
+    )
+    // 
+    + int2d(Th)( 
+        - sqrt(Re)*(1./dt)*(uxo*vx + uyo*vy)
+        + (1 - tschema) * beta * (dx(uxo)*dx(vx) + dy(uxo)*dy(vx) + dx(uyo)*dx(vy)+ dy(uyo)*dy(vy))
+    )
+
+    // pressure
+    - int2d(Th)(xbar*pbar/(rho*eta*ubar)*p*div(vx,vy)) + int2d(Th)(div(ux,uy)*q)
+    // fix the pressure mean 
+    + int2d(Th)( epsilon * p*q )
+    
+    //   // P1/P1 stabilization term. Only for P1/P1 FEM 
+    + int2d(Th)( (gammap*hTriangle^2/mu) * (dx(p)*dx(q) + dy(p)*dy(q) ))
+    
+    
+    // boundary conditions 
+    + on(1, 3, 5, 7, 9, 11, ux=0, uy =0 )
+    + on(10, p = 0)
+    //+ on(4, ux=ux1(mu), uy = 0) 
+    // + on(4, p = 0)
+    ;
+
+func real ux1(){
+    if( l0 < y & y < l/3 ){return (-dP/(2*1)*(y-l/4)*(y));}
+    else{return (-dP/(2*2)*(y-l)*(y-l/4));}
+}
+
+T=1;
+int Niter = T/dt;
+
+uxo = ux1();
+uyo = uy1;
+
+
+for (int n=0; n< Niter;++n) {
+
+  // update time step
+  t += dt ;
+  
+  // solve Stokes system 
+  Stokes;
+
+  // update values for u in concentration
+  uxc = l0 < y & y < l/4 ? ux : 0;
+  uyc = l0 < y & y < l/4 ? uy : 0;
+
+  // Solve
+  dConvecDiffTps;
+
+  // update old time levels
+  uxo = ux;
+  uyo = uy;
+  cc = c;
+  
+  // velocity plot
+  uxplot = ux;
+  uyplot = uy;
+  
+  // plot([uxplot,uyplot]);
+
+  // concentration  plot
+  plot(c, fill=1, wait=true);
+
+  // pressure plot 
+  //plot(p,fill=true,value=true);
+  
+ }
+
+/* fespace Xh(Th, P2); //definition of the velocity component space
+fespace Mh(Th, P1); //definition of the pressure space
+Xh u2, v2;
+Xh u1, v1;
+Xh up1, up2;
+Mh p, q;
+
+int i=0;
+real pas=1/dt;
+problem NS (u1, u2, p, v1, v2, q, solver=Crout, init=i)
+    = int2d(Th)(
+            pas*(u1*v1 + u2*v2)
+        + mu * (
+              dx(u1)*dx(v1) + dy(u1)*dy(v1)
+            + dx(u2)*dx(v2) + dy(u2)*dy(v2)
+        )
+        - p*q*(0.000001)
+        - p*dx(v1) - p*dy(v2)
+        - dx(u1)*q - dy(u2)*q
+    )
+    + int2d(Th)(
+        - pas*convect([up1,up2],-dt,up1)*v1
+        - pas*convect([up1,up2],-dt,up2)*v2
+    )
+    + on(4, u1=ux, u2=0)
+    + on(3,7,11,1,5,9, u1=0, u2=0)
+    ;
+
+// Time loop
+for (i = 0; i <= 25; i++){
+    // Update
+    up1 = u1;
+    up2 = u2;
+
+    // Solve
+    NS;
+
+    
+    plot(coef=0.2, cmm="[u1,u2] and p", p, [u1, u2]);
+} */
