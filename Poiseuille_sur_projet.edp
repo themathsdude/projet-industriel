@@ -107,7 +107,7 @@ problem dConvecDiffTps (c, v)
     + on(labelEntree1, c = t)
     ; 
 // Time loop
-cc = -x;
+cc = 10;
 
 // for (int m = 0; m <= 1 / dt; m++) {
 //     // Update
@@ -216,7 +216,7 @@ for (int n=0; n< Niter;++n) {
   
   // plot([uxplot,uyplot]);
   // concentration  plot
-  plot(c, fill=1, wait=true);
+  plot(c, coef=0.2, fill=1, wait=true);
   // pressure plot 
   //plot(p,fill=true,value=true);
   
