@@ -1,5 +1,4 @@
 // paramètres de l'EDP
-
 real dt = 0.1;
 real mu = 1;
 real dP = 0.5;
@@ -8,11 +7,11 @@ real theta = 1;
 // Constantes d'adimensionnement
 real vbar, xbar, ubar, pbar, tbar, eta, gamma, rho;
 
-vbar = 1e-12; //volumes
+vbar = 1e-12;   //volumes
 eta = 1.005e-6; //Viscosite dynamique (eau a 20 degres)
-xbar = 1e-6; //Diametre canaux
-ubar = 1e-3; //Vitesse de l’ecoulement
-pbar = 1e4; //pression caracteristique 
+xbar = 1e-6;    //Diametre canaux
+ubar = 1e-3;    //Vitesse de l’ecoulement
+pbar = 1e4;     //pression caracteristique 
 tbar = 1; 
 gamma = 0.1; //viscosite/diffusion
 rho = 1e3;
