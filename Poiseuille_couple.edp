@@ -192,11 +192,12 @@ problem Stokes([ux, uy, p], [vx, vy, q]) =
     // // Flux rentrant
     // - int1d(Th, 4)( dx(ux)*vx + dx(uy)*vx )
     // Flux sortant
-    + int1d(Th, 10)( dx(ux)*vx + dx(uy)*vx ) //- xbar*pbar/(rho*eta*ubar)*p*vx )
+    + int1d(Th, 10)( tschema * (dx(ux)*vx + dx(uy)*vx ) - xbar*pbar/(rho*eta*ubar)*p*vx )
+    + int1d(Th, 10)( (1 - tschema) * (dx(uxo)*vx + dx(uyo)*vx) )
 
     // boundary conditions 
     + on(1, 3, 5, 7, 9, 11, ux=0, uy =0 )
-    + on(10, p = 5)
+    // + on(10, p = 5)
     + on(4, ux = ux1(), uy = 0) 
     // + on(4, p = 0)
     ;
