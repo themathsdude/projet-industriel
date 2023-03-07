@@ -1,0 +1,28 @@
+  329 :     plot(coef=0.2, cmm="[u1,u2] and p", p, [u1, u2]);
+  330 : } */ sizestack + 1024 =13632  ( 12608 )
+ 
+xbar^2/tbar = 1e-12
+(ubar*xbar) = 1e-09
+ 
+  --  mesh:  Nb of Triangles =   4030, Nb of Vertices 2116
+  --  mesh:  Nb of Triangles =   5916, Nb of Vertices 3059
+  --  mesh:  Nb of Triangles =   4062, Nb of Vertices 2132
+  --  mesh:  Nb of Triangles =   8178, Nb of Vertices 4265
+  -- Solve :
+          min -9.17223e-38  max 0.00928888
+          min -0.0014507  max 0.00142874
+          min -2.61999e-06  max 2.34393e-06
+  -- Solve :
+          min -0.00144715  max 0.01
+  -- Solve :
+          min -4.91321e-06  max 0.00483383
+          min -0.000756849  max 0.000748978
+          min -1.29737e-06  max 1.17267e-06
+  -- Solve :
+          min -0.00193994  max 0.02
+  -- Solve :
+          min -5.35257e-37  max 0.00252875
+          min -0.000349422  max 0.000345219
+          min -7.13563e-07  max 6.47871e-07
+  -- Solve :
+          min -0.0015681  max 0.03
