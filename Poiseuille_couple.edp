@@ -192,8 +192,8 @@ problem Stokes([ux, uy, p], [vx, vy, q]) =
     // // Flux rentrant
     // - int1d(Th, 4)( dx(ux)*vx + dx(uy)*vx )
     // Flux sortant
-    + int1d(Th, 10)( tschema * (dx(ux)*vx + dx(uy)*vx ) - xbar*pbar/(rho*eta*ubar)*p*vx )
-    + int1d(Th, 10)( (1 - tschema) * (dx(uxo)*vx + dx(uyo)*vx) )
+    + int1d(Th, 10)( tschema * beta * (dx(ux)*vx + dx(uy)*vx ) - xbar*pbar/(rho*eta*ubar)*p*vx )
+    + int1d(Th, 10)( (1 - tschema) * beta * (dx(uxo)*vx + dx(uyo)*vx) )
 
     // boundary conditions 
     + on(1, 3, 5, 7, 9, 11, ux=0, uy =0 )
@@ -231,10 +231,10 @@ for (int n=0; n< Niter;++n) {
   uxplot = ux;
   uyplot = uy;
   
-  plot([uxplot,uyplot]);
+  // plot([uxplot,uyplot]);
 
   // concentration  plot
-  // plot(c, fill=1, wait=true);
+  plot(c, fill=1, wait=true);
 
   // pressure plot 
   //plot(p,fill=true,value=true);
