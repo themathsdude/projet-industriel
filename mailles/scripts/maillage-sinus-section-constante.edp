@@ -1,23 +1,23 @@
 // paramètres du tube
 
-real diametreTube = 1e-1;
+real diametreTube = 1e-6;
 real rayonTube = diametreTube / 2;
 
 real alpha = pi / 4;     // angle incidence
-real longueurTube1 = 1;  // longueur du tube d'injection
-real longueurTube2 = 1;  // longueur sur l'axe des abscisses de la suite du Y
-real longueurTube3 = 1;  // longueur sur l'axe des abscisses sortie de chauffe
+real longueurTube1 = 1e-5;  // longueur du tube d'injection
+real longueurTube2 = 1e-5;  // longueur sur l'axe des abscisses de la suite du Y
+real longueurTube3 = 1e-5;  // longueur sur l'axe des abscisses sortie de chauffe
 
 // paramètres du maillage
 
-real h = 0.01;
+real h = diametreTube * 5e-2;
 
 // paramètres de la section de chauffe
 
 real[int] translationChauffe =
     [ 2*rayonTube, 2*rayonTube ];  // vecteur de translation de la partie de chauffe
 real nbOscillations = 2 + 0.5;
-real longueurOscillations = 2;
+real longueurOscillations = 2e-5;
 real hauteurOscillations = 4 * rayonTube;
 real k = 2 * pi * nbOscillations / longueurOscillations;  // pulsation
 
@@ -211,8 +211,7 @@ border fermeture(t = 0, 1) {
 int nbPointsT1 = longueurTube1 / h + 1;
 int nbPointsT2 = longueurTube2 / h + 1;
 int nbPointsT3 = longueurTube3 / h + 1;
-int nbPointsChauffe =
-    5 * longueurOscillations * hauteurOscillations * nbOscillations / h + 1;
+int nbPointsChauffe = longueurOscillations / h + 1;
 int nbPointsRayon = diametreTube / h + 1;
 int nbPointsJonction = translationChauffe[0] / h + 1;
 
@@ -238,4 +237,6 @@ mesh Th = buildmesh(
 
 plot(Th, wait = true);
 
-savemesh(Th, "mesh1.msh");
+// exportation du maillage
+
+savemesh(Th, "../projet-section-constante.msh");

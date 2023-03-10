@@ -221,4 +221,6 @@ mesh Th = buildmesh(
 
 plot(Th, wait = true);
 
-savemesh(Th, "mesh2.msh");
+// exportation du maillage
+
+savemesh(Th, "../projet-sinus-superpose.msh");

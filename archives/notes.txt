@@ -46,3 +46,11 @@ cout << coeffs2;
 l'inverse de : A avec les colonnes inversées
 c'est
 les lignes inversées de inv(A)
+
+
+
+quand on adimensionne, on retire pas juste les unités, donc si u est un vecteur
+u = ubarre U, donc ubarre c'est norme de U ? donc U est de norme 1 ?
+
+ou c'est pour que Laplacien U soir adimensionné, donc Laplacien U = 1 ? et
+U quelconque
