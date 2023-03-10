@@ -1,0 +1,132 @@
+mesh Th = readmesh("mailles/tuyau-droit-gros-1700-elm.msh");
+
+// paramètres de la géométrie
+
+real largeur = 1e-6;    // diamètre / largeur
+real Long = 5*largeur;  // longueur du tube
+real Lc = largeur;      // longueur partie chauffe
+
+// paramètres de l'équation aux dérivées partielles
+// liés à la géométrie
+real xbar = 1e-6;    // diamètre canaux
+real ubar = 1e-3;    // vitesse de l’écoulement
+real Lbar = 3e-1;
+
+// liés au fluide
+real rho = 1e3;          // masse volumique
+real eta = 1.005e-6; 	 // viscosité dynamique (eau a 20 degrés)
+real gamma = 1e-14;      // viscosité/diffusion
+
+// liés à l'expérience
+real tbar = 1e-3;       // temps caractéristique
+real pbar = 1e4;        // pression caractéristique 
+real cbar = 200;        // concentration caractéristique
+real tempFroide = 20;
+real tempChaude = 80;
+real lbar = 2.5e-4;       // j'ai mis ça pour que l'écoulement de Poiseuille
+// donne une pression d'entrée de l'ordre de pbar, histoire de comparer
+// entre imposer pression entree ou imposer ecoulement poiseuille 
+
+// conditions aux bords
+
+real pressionEntree = pbar;
+real pressionSortie = 0;
+
+real dP = pressionEntree - pressionSortie;
+func uxini = - dP/(2*eta*lbar)*(y-largeur)*(y);  // vitesse entrée
+func uyini = 0;
+
+// vitesse de l'ordre de pbar * xbar^2 / (8 * eta * L) 
+// = 1e-8 / (8 * 1e-6 * L)
+// = 1e4 / (8 * 5) = 1e3 / 4
+// = ubar / 4 donc il faut un temps de l'ordre de xbar / ubar = 1e-3 pour
+// observer l'écoulement sur ce tuyau
+
+real stabilisation = 1e-10; // coefficient de stabilisation
+
+// variables intermédiaires
+
+real lambda = xbar * pbar / (rho * eta * ubar);
+real T = tbar / 1e4;
+
+func real alpha(real theta){
+    real a, b, c, d, e, f;
+    a = -2.53958848e-16;
+    b = -2.76506905e-12;
+    c = 5.95400333e-10;
+    d = -4.52299564e-08;
+    e = 1.72329803e-06;
+    return (a * theta^4 + b * theta^3 + c * theta^2 + d * theta + e)/(1.753*1e-6);
+}
+
+// labels des bords
+
+int labelNeutre = 0;
+int labelEntree = 1;
+int labelChauffex = 2;
+int labelChauffey = 3;
+int labelSortie = 4;
+
+// définition des espaces éléments finis et du problème
+
+fespace Ph0(Th, P0); // pour les indicatrices de région
+fespace Ph1(Th, P1); // pour la pression
+fespace Vh2(Th, [P2, P2]); // pour la vitesse
+
+Ph0 indicRegion = region;
+int labelRegionChaud = indicRegion(Long/2, largeur/2);
+
+Ph0 alphaOmega = alpha(tempChaude)*(indicRegion == labelRegionChaud)
+		 + alpha(tempFroide)*(indicRegion != labelRegionChaud);
+		 // vaut alpha(tempChaude) sur region chaude
+plot(alphaOmega, value = 1, fill = 1, wait = 1);
+
+// problèmes aux éléments finis
+
+macro grad(u) [dx(u), dy(u)]                //
+macro grad2(u) [grad(u#x), grad(u#y)]       //
+macro divergence(ux, uy) (dx(ux) + dy(uy))  //
+
+Vh2 [ux, uy]; // vitesse recherchée
+Ph1 p;        // pression recherchée
+Vh2 [uxinih, uyinih] = [ uxini, uyini ]; // vitesses initiales interpolées
+
+Vh2 [vx, vy]; // fonction test vitesse
+Ph1 q;        // fonction test pression
+
+problem StokesStationnaire([ ux, uy, p ], [ vx, vy, q ]) =
+    int2d(Th)(
+              - (grad(ux) ' * grad(vx) + grad(uy)' * grad(vy)) * alphaOmega
+              + divergence(ux, uy) * q
+              + lambda * divergence(vx, vy) * p
+              //+ stabilisation * p * q
+              )
+
+    + on(labelEntree, ux = uxinih, uy = uyinih)  // entree profil Poiseuille
+    //+ on(labelEntree, ux = 1e-5, uy = uyinih)  // entree vitesse caractéristique
+    //+ on(labelEntree, p = pressionEntree)
+    //+ on(labelSortie, p = pressionSortie)
+    + on(labelNeutre, labelChauffex, ux = 0, uy = 0)    // bords solides
+    ;
+    // soit on impose uxinih tel que le profil de poiseuille corresponde en pression d'entree à pbar ou corresponde en vitesse à ubar, c'est a dire bidouiller lbar
+    // soit on impose p en entree et ux = 1e-5 = 0, sauf que on a une énorme perte de pression pour mettre le fluide en mouvement, donc est-ce + réaliste ?
+
+StokesStationnaire;
+
+// affichage de la solution P2P1
+
+plot(p, wait = 1, fill = 1, value = 1, cmm = "champ scalaire de pression P1");
+plot([ ux, uy ], wait = 1, fill = 1, value = 1,
+     cmm = "champ vectoriel de vitesse P2");
+
+
+
+
+
+
+
+
+
+
+
+
