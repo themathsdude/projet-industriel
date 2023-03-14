@@ -1,0 +1,186 @@
+//--------Maillage---------
+
+// paramètres de la géométrie
+real largeur = 1e-6;    // diamètre / largeur
+real Long = 5*largeur;  // longueur du tube
+real Lc = largeur;      // longueur partie chauffe
+
+real l0 = 0;
+real l = l0 + largeur;
+real LF = (Long-Lc)/2; //longueur à gauche
+real LP = LF; //longueur à droite
+//longueurs cumulées (pour les coordonnées) maillage :
+real L0 = 0, L1 = LF, L2 = L1 +  Lc, L = LP + LF + Lc; 
+
+int n = 50;
+
+//Omega F (partie gauche)
+border OFu(t = L1, L0) {x = t; y = l; label = 1;}; //Label 1 = bords neutres
+border OFl(t = l, l0) {x = L0; y = t; label = 2;}; // Label 2 = bord entrée
+border OFd(t = L0, L1) {x = t; y = l0; label = 1;}; 
+//Omega C (partie chauffe)
+border OCu(t = L2, L1) {x = t; y = l; label = 3;}; 
+border OCd(t = L1, L2) {x = t; y = l0; label = 3;}; // Label 3 = bords chauffe
+//Omega P (partie droite)
+border OPd(t = L2, L) {x = t; y = l0; label = 1;};
+border OPr(t = l0, l) {x = L; y = t; label = 4;}; // Label 4 = bord sortie
+border OPu(t = L, L2) {x = t; y = l; label = 1;};
+
+mesh Th = buildmesh(OFd(n) + OFu(n) + OFl(n) 
+    + OCd(n/2) + OCu(n/2) 
+    + OPd(n) + OPr(n) + OPu(n));
+
+// affichage maillage
+plot(Th, wait = 1);
+
+//mesh Th = readmesh("mailles/tuyau-droit-gros-1700-elm.msh");
+
+//-------------Paramètres------------
+
+// paramètres de l'équation aux dérivées partielles
+// liés à la géométrie
+real xbar = 1e-6;    // diamètre canaux
+real ubar = 1e-3;    // vitesse de l’écoulement
+real Lbar = 3e-1;
+
+// liés au fluide
+real rho = 1e3;      // masse volumique
+real eta = 1.005e-6; // viscosité dynamique (eau a 20 degrés)
+real gamma = 1e-14;      // viscosité/diffusion
+
+// liés à l'expérience
+real tbar = 1e-3;       // temps caractéristique
+real pbar = 1e4;     // pression caractéristique 
+real cbar = 200;     // concentration caractéristique
+real tempFroide = 20;
+real tempChaude = 80;
+
+//-----------Conditions aux bords-------------
+
+real pressionEntree = pbar;
+real pressionSortie = 0;
+
+real dP = pressionEntree - pressionSortie;
+func uxini = - dP/(2*eta*Long)*(y-largeur)*(y);  // vitesse entrée
+func uyini = 0;
+
+// vitesse de l'ordre de pbar * xbar^2 / (8 * eta * L) 
+// = 1e-8 / (8 * 1e-6 * L)
+// = 1e4 / (8 * 5) = 1e3 / 4
+// = ubar / 4 donc il faut un temps de l'ordre de xbar / ubar = 1e-3 pour
+// observer l'écoulement sur ce tuyau
+
+real stabilisation = 1e-10; // coefficient de stabilisation
+
+// variables intermédiaires
+
+real lambda = xbar * pbar / (rho * eta * ubar);
+real T = tbar / 1e4;
+
+func real alpha(real theta){
+    real a, b, c, d, e, f;
+    a = -2.53958848e-16;
+    b = -2.76506905e-12;
+    c = 5.95400333e-10;
+    d = -4.52299564e-08;
+    e = 1.72329803e-06;
+    return (a * theta^4 + b * theta^3 + c * theta^2 + d * theta + e)/(1.753*1e-6);
+}
+
+// labels des bords
+
+int labelNeutre = 1;
+int labelEntree = 2;
+int labelChauffe = 3;
+int labelSortie = 4;
+
+//-------Définition des espaces éléments finis et du problème-------
+
+fespace Ph0(Th, P0); // pour les indicatrices de région
+fespace Ph1(Th, P1); // pour la pression
+fespace Vh2(Th, [P2, P2]); // pour la vitesse
+
+// macros
+
+macro grad(u) [dx(u), dy(u)]                //
+macro grad2(u) [grad(u#x), grad(u#y)]       //
+macro divergence(ux, uy) (dx(ux) + dy(uy))  //
+
+//--------Problème de convection-diffusion-----------
+
+real s = 1;
+real tau = T / 20;
+int M = T / tau;
+
+real A = xbar^2 / tbar;  // A = 1e-12 si tbar = 1, 1e-9 si tbar = 1e-3
+real B = xbar * ubar;    // B = 1e-9
+
+fespace Ch2(Th, P2); // pour la pression
+
+Vh2 [uxinih, uyinih] = [ uxini, uyini ]; // vitesses initiales interpolées
+Ch2 c, v;    // concentration et fonction test
+Ch2 cc; // concentration à l'instant précédent
+// pas besoin d'initialiser c, on le cherche
+
+cc = 0;
+
+func falphaOmega =  2*largeur < x & x < 3*largeur ? 1 : 0.1;
+Ph0 alphaOmega = falphaOmega;
+plot(alphaOmega, value = 1, fill = 1, wait = 1);
+
+problem ConvectionDiffusion(c, v) = 
+      int2d(Th)(A*c*v)
+    - int2d(Th)(A*cc*v)
+    + int2d(Th)(tau * s * (alphaOmega * gamma * grad(c) ' * grad(v)
+            + B * grad(c) ' * [uxinih, uyinih] * v))
+    //- int1d(Th, labelNeutre)(tau * alphaOmega * gamma * N.x * dx(cc) * v )
+    - int1d(Th, labelEntree)(
+            tau * s * alphaOmega * gamma * grad(cc)' * [N.x, N.y] * v )
+    + int2d(Th)(tau * (1-s) * (alphaOmega * gamma * grad(cc) ' * grad(v)
+            + B * grad(cc) ' * [uxinih, uyinih] * v))
+    //- int1d(Th, labelNeutre)(tau * alphaOmega * gamma * N.x * dx(cc) * v )
+    - int1d(Th, labelEntree)(
+            tau * (1 - s) * alphaOmega * gamma * grad(cc)' * [N.x, N.y] * v )
+    + on(labelEntree, c = cbar)
+    ;
+
+
+//----------Résolution du problème pas à pas-----------
+
+for (int i = 1; i <= M; i++){    
+    // résolution du problème
+    ConvectionDiffusion;
+    
+    // mise à jour des conditions
+    cc = c;
+
+    // affichage
+    plot(c, value = 1, fill = 1, wait = 1, cmm = "concentration P2");
+    cout << "t =" << tau*i << endl;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
