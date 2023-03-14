@@ -74,15 +74,6 @@ func uy12 = dP / (2 * 5*mu) * (y - rayonTube) * (y + rayonTube) * sin(-alpha) +
 
 real t = 0;
 
-// // Problem imp
-// problem dConvecDiff(c, v) = 
-//       int2d(Th)(1e-12 * c * v + dt * [ uxc, uyc ]'*Grad(c)*v )
-//     + int2d(Th)(dt * beta * mu * Grad(c)'*Grad(v) )
-//     - int2d(Th)(cc * v)
-//     - int1d(Th, 4)(dt * beta * eta * cc'*v )ßß
-//   //+ on(1, 2, 3, 5, 7, 9, 11, 12, c=0)
-//     + on(4, c = t);
-
 // Problem implicite coeffs ad
 problem dConvecDiffTps (c, v)
     = int2d(Th)(
@@ -91,37 +82,24 @@ problem dConvecDiffTps (c, v)
         + tschema*gamma*beta*Grad(c)'*Grad(v) 
         )
     )
-    - int1d(Th, 4)(
-        (ubar*xbar)*dt*tschema*gamma*beta*[N.x, N.y]'*Grad(c)*v
-    )
+    // - int1d(Th, labelEntree1)(
+    //     (ubar*xbar)*dt*tschema*gamma*beta*[N.x, N.y]'*Grad(c)*v
+    // )
     + int2d(Th)(
         - (xbar^2/tbar)*cc*v
         + (ubar*xbar)*(1-tschema)*dt*[uxc, uyc]'*Grad(cc)*v 
         + (ubar*xbar)*(1-tschema)*dt*gamma*beta*Grad(cc)'*Grad(v)
 
     )
-    - int1d(Th, 4)(
-        (ubar*xbar)*(1-tschema)*dt*gamma*beta*[N.x, N.y]'*Grad(cc)*v
-    )
+    // - int1d(Th, 4)(
+    //     (ubar*xbar)*(1-tschema)*dt*gamma*beta*[N.x, N.y]'*Grad(cc)*v
+    // )
     //+ on(1, 2, 3, 5, 7, 9, 11, 12, c=0)
-    + on(labelEntree1, c = t)
+    + on(labelEntree2, c = 0)
+    + on(labelEntree1, c = (10*sin(t))^2 )
     ; 
 // Time loop
-cc = 10;
-
-// for (int m = 0; m <= 1 / dt; m++) {
-//     // Update
-//     t = t + dt;
-
-//     cc = c;
-//     //beta =  x > L0 & x < L1 ? 1 : (L1 < x & x < L2 ? 1/10 : 0);
-//     beta = 1;
-//     // Solve
-//     dConvecDiffTps;
-
-//     // Plot
-//     //plot(c, fill = 1, wait = true);
-// }
+cc = 0;
 
 // macros  
 macro dn(u) ( dx(u)*N.x+dy(u)*N.y )//
@@ -170,12 +148,16 @@ problem Stokes([ux, uy, p], [vx, vy, q]) =
     
     //   // P1/P1 stabilization term. Only for P1/P1 FEM 
     + int2d(Th)( (gammap*hTriangle^2/mu) * (dx(p)*dx(q) + dy(p)*dy(q) ))
-    
+   
+    // Flux sortant
+    + int1d(Th, labelSortie)( tschema * beta * (dx(ux)*vx + dx(uy)*vx ) )
+    + int1d(Th, labelSortie)(- 10*xbar*pbar/(rho*eta*ubar)*vx)
+
     // boundary conditions 
     + on(labelBordNeutre, labelBasChauffe, labelHautChauffe, ux=0, uy =0 )
     //+ on(labelSortie, p = 0)
-    + on(labelEntree1, ux = ux1, uy = -uy1) 
-    + on(labelEntree2, ux = ux12, uy = uy12) 
+    + on(labelEntree1, ux = 1e-3, uy = -1e-3) 
+    + on(labelEntree2, ux = 5e-3, uy = 1e-3) 
     // + on(4, p = 0)
     ;
 
@@ -184,11 +166,12 @@ problem Stokes([ux, uy, p], [vx, vy, q]) =
 //     else{return (-dP/(2*2)*(y-l)*(y-l/2));}
 // }
 
-real T=1;
+real T=8;
 int Niter = T/dt;
 
 uxo = 0;
 uyo = 0;
+p = 0;
 
 for (int n=0; n< Niter;++n) {
 
@@ -214,82 +197,10 @@ for (int n=0; n< Niter;++n) {
   uxplot = ux;
   uyplot = uy;
   
-  // plot([uxplot,uyplot]);
+  plot([uxplot,uyplot]);
   // concentration  plot
   plot(c, coef=0.2, fill=1, wait=true);
   // pressure plot 
   //plot(p,fill=true,value=true);
   
  }
-
-
-// finite element spaces et functions
-// comment the lines depdending of the choice 
-// -- P2/P1 
-// fespace Xh(Th,P2);
-// fespace Mh(Th,P1);
-// real gammap = 0.0;
-
-// -- P1/P1 
-// fespace Xh(Th,P1);
-// fespace Mh(Th,P1);
-// real gammap = 0.01;
-
-// Xh ux, uy, vx, vy, uxo, uyo;
-// Mh p, q, uxplot, uyplot;
-
-// real t=0;
-// // boundary data 
-// func uxdata = 2.*x*(1-x)+cos(pi*t);
-
-
-// // parameter to fix the pressure mean 
-// real epsilon = 1e-10;
-
-// // Stokes variational problem 
-// problem Stokes([ux, uy, p], [vx, vy, q]) = 
-  
-//   int2d(Th)( (1./dt)*(ux*vx + uy*vy) + mu * (dx(ux)*dx(vx) + dy(ux)*dy(vx) + dx(uy)*dx(vy)+ dy(uy)*dy(vy)))
-//   - int2d(Th)(p*div(vx,vy)) + int2d(Th)(div(ux,uy)*q)
-  
-//   // fix the pressure mean 
-//   + int2d(Th)( epsilon * p*q )
-  
-//   // P1/P1 stabilization term. Only for P1/P1 FEM 
-//   + int2d(Th)( (gammap*hTriangle^2/mu) * (dx(p)*dx(q) + dy(p)*dy(q) ))
-  
-//   // rhs
-//   -int2d(Th)( (1./dt)*(uxo*vx + uyo*vy) )
-  
-//   // boundary conditions 
-//   + on(1,2,4, ux=0, uy =0 )
-//   + on(3, ux=uxdata, uy =0 ) ;
-
-
-// real T=2.0;
-// int Niter = T/dt;
-
-// uxo = uxdata;
-// uyo = 0;
-
-// for (int n=0; n< Niter;++n) {
-
-//   // update time step
-//   t += dt ;
-  
-//   // solve Stokes system 
-//   Stokes;
-
-//   // update old time levels
-//   uxo = ux;
-//   uyo = uy;
-
-//   // velocity plot
-//   uxplot = ux;
-//   uyplot = uy;
-//   plot([uxplot,uyplot],wait=1);
-  
-//   // pressure plot 
-//   plot(p,wait=1,fill=true,value=true);
-  
-//  }

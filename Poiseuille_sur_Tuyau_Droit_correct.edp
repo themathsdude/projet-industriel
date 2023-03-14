@@ -159,7 +159,7 @@ problem dConvecDiffTps (c, v)
 //Time loop
 cc = 0;
 // beta =  L1 < x & x < L2 ? visc(100) : visc(20);
-beta =  L1 < x & x < L2 ? 1: 0.1;
+beta =  L1 < x & x < L2 ? 0.1: 1;
 for (int m = 0; m <= T/dt; m++){
     // Update
     t = t+dt;
