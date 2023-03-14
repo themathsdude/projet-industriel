@@ -35,7 +35,7 @@ plot(Th, wait = 1);
 
 //mesh Th = readmesh("mailles/tuyau-droit-gros-1700-elm.msh");
 
-//-------------Paramètres------------
+//------------Paramètres-------------
 
 // paramètres de l'équation aux dérivées partielles
 // liés à la géométrie
@@ -44,24 +44,27 @@ real ubar = 1e-3;    // vitesse de l’écoulement
 real Lbar = 3e-1;
 
 // liés au fluide
-real rho = 1e3;      // masse volumique
-real eta = 1.005e-6; // viscosité dynamique (eau a 20 degrés)
+real rho = 1e3;          // masse volumique
+real eta = 1.005e-6; 	 // viscosité dynamique (eau a 20 degrés)
 real gamma = 1e-14;      // viscosité/diffusion
 
 // liés à l'expérience
 real tbar = 1e-3;       // temps caractéristique
-real pbar = 1e4;     // pression caractéristique 
-real cbar = 200;     // concentration caractéristique
+real pbar = 1e4;        // pression caractéristique 
+real cbar = 200;        // concentration caractéristique
 real tempFroide = 20;
 real tempChaude = 80;
+real lbar = 2.5e-4;       // j'ai mis ça pour que l'écoulement de Poiseuille
+// donne une pression d'entrée de l'ordre de pbar, histoire de comparer
+// entre imposer pression entree ou imposer ecoulement poiseuille 
 
-//-----------Conditions aux bords-------------
+// conditions aux bords
 
 real pressionEntree = pbar;
 real pressionSortie = 0;
 
 real dP = pressionEntree - pressionSortie;
-func uxini = - dP/(2*eta*Long)*(y-largeur)*(y);  // vitesse entrée
+func uxini = - dP/(2*eta*lbar)*(y-largeur)*(y);  // vitesse entrée
 func uyini = 0;
 
 // vitesse de l'ordre de pbar * xbar^2 / (8 * eta * L) 
@@ -94,84 +97,54 @@ int labelEntree = 2;
 int labelChauffe = 3;
 int labelSortie = 4;
 
-//-------Définition des espaces éléments finis et du problème-------
+// définition des espaces éléments finis et du problème
 
 fespace Ph0(Th, P0); // pour les indicatrices de région
 fespace Ph1(Th, P1); // pour la pression
 fespace Vh2(Th, [P2, P2]); // pour la vitesse
 
-// macros
+// fonction pour la viscosité
+func falphaOmega =  2*largeur < x & x < 3*largeur ? 0.2 : 0.6;
+Ph0 alphaOmega = falphaOmega;
+plot(alphaOmega, value = 1, fill = 1, wait = 1);
+
+// problèmes aux éléments finis
 
 macro grad(u) [dx(u), dy(u)]                //
 macro grad2(u) [grad(u#x), grad(u#y)]       //
 macro divergence(ux, uy) (dx(ux) + dy(uy))  //
 
-//--------Problème de convection-diffusion-----------
-
-real s = 1;
-real tau = T / 20;
-int M = T / tau;
-
-real A = xbar^2 / tbar;  // A = 1e-12 si tbar = 1, 1e-9 si tbar = 1e-3
-real B = xbar * ubar;    // B = 1e-9
-
-fespace Ch2(Th, P2); // pour la pression
-
+Vh2 [ux, uy]; // vitesse recherchée
+Ph1 p;        // pression recherchée
 Vh2 [uxinih, uyinih] = [ uxini, uyini ]; // vitesses initiales interpolées
-Ch2 c, v;    // concentration et fonction test
-Ch2 cc; // concentration à l'instant précédent
-// pas besoin d'initialiser c, on le cherche
 
-cc = 0;
-// Beta(theta)
-func falphaOmega =  2*largeur < x & x < 3*largeur ? 1 : 0.1;
-Ph0 alphaOmega = falphaOmega;
-plot(alphaOmega, value = 1, fill = 1, wait = 1);
+Vh2 [vx, vy]; // fonction test vitesse
+Ph1 q;        // fonction test pression
 
-problem ConvectionDiffusion(c, v) = 
-      int2d(Th)(A*c*v)
-    - int2d(Th)(A*cc*v)
-    + int2d(Th)(tau * s * (alphaOmega * gamma * grad(c) ' * grad(v)
-            + B * grad(c) ' * [uxinih, uyinih] * v))
-    //- int1d(Th, labelNeutre)(tau * alphaOmega * gamma * N.x * dx(cc) * v )
-    - int1d(Th, labelEntree)(
-            tau * s * alphaOmega * gamma * grad(cc)' * [N.x, N.y] * v )
-    + int2d(Th)(tau * (1-s) * (alphaOmega * gamma * grad(cc) ' * grad(v)
-            + B * grad(cc) ' * [uxinih, uyinih] * v))
-    //- int1d(Th, labelNeutre)(tau * alphaOmega * gamma * N.x * dx(cc) * v )
-    - int1d(Th, labelEntree)(
-            tau * (1 - s) * alphaOmega * gamma * grad(cc)' * [N.x, N.y] * v )
-    + on(labelEntree, c = cbar)
+problem StokesStationnaire([ ux, uy, p ], [ vx, vy, q ]) =
+    int2d(Th)(
+              - (grad(ux) ' * grad(vx) + grad(uy)' * grad(vy)) * alphaOmega
+              + divergence(ux, uy) * q
+              + lambda * divergence(vx, vy) * p
+              //+ stabilisation * p * q
+              )
+
+    + on(labelEntree, ux = uxinih, uy = uyinih)  // entree profil Poiseuille
+    //+ on(labelEntree, ux = 1e-5, uy = uyinih)  // entree vitesse caractéristique
+    //+ on(labelEntree, p = pressionEntree)
+    //+ on(labelSortie, p = pressionSortie)
+    + on(labelNeutre, labelChauffe, ux = 0, uy = 0)    // bords solides
     ;
+    // soit on impose uxinih tel que le profil de poiseuille corresponde en pression d'entree à pbar ou corresponde en vitesse à ubar, c'est a dire bidouiller lbar
+    // soit on impose p en entree et ux = 1e-5 = 0, sauf que on a une énorme perte de pression pour mettre le fluide en mouvement, donc est-ce + réaliste ?
 
+StokesStationnaire;
 
-//----------Résolution du problème pas à pas-----------
+// affichage de la solution P2P1
 
-for (int i = 1; i <= M; i++){    
-    // résolution du problème
-    ConvectionDiffusion;
-    
-    // mise à jour des conditions
-    cc = c;
-
-    // affichage
-    plot(c, value = 1, fill = 1, wait = 1, cmm = "concentration P2");
-    cout << "t =" << tau*i << endl;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+plot(p, wait = 1, fill = 1, value = 1, cmm = "champ scalaire de pression P1");
+plot([ ux, uy ], wait = 1, fill = 1, value = 1,
+     cmm = "champ vectoriel de vitesse P2");
 
 
 
