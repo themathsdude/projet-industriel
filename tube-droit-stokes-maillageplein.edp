@@ -55,7 +55,7 @@ real ubar = 1e-3;    	// vitesse de l’écoulement
 real rho = 1e3;      	// masse volumique
 real eta = 1.753e-3; 	// viscosité dynamique (eau a 0 degrés)
 real eta20 = 1e-3;	// viscosité dynamique (eau a 20 degrés)
-real gamma = 7e-15;     // diffusion
+real gamma = 7e-13;     // diffusion
 
 // liés à l'expérience
 real tbar = sqrt(rho * xbar^3 / (eta20 * ubar));    // temps caractéristique
