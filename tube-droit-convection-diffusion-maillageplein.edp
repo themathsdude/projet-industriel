@@ -98,8 +98,8 @@ func real alpha(real theta){
 
 //-------Définition des espaces éléments finis et du problème-------
 
-fespace Ph0(Th, P0); // pour les indicatrices de région
 fespace Ph1(Th, P1); // pour la pression, température et viscosité
+fespace Ph2(Th, P2); // pour la concentration
 fespace Vh2(Th, [P2, P2]); // pour la vitesse
 
 // fonction pour la viscosité
@@ -153,8 +153,8 @@ Vh2 [uxinih, uyinih] = [ uxini, uyini ]; // vitesses initiales interpolées
 Vh2 [vx, vy];   // fonction test vitesse
 Ph1 q;          // fonction test pression
 
-Ph1 c, v;       // concentration et fonction test
-Ph1 cc;         // concentration à l'instant précédent
+Ph2 c, v;       // concentration et fonction test
+Ph2 cc;         // concentration à l'instant précédent
 // pas besoin d'initialiser c, on le cherche
 
 cc = 0;
