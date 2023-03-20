@@ -1,35 +1,16 @@
 // paramètres de la géométrie
 
-real largeur = 1e-6;    // diamètre / largeur
-real Long = 5*largeur;  // longueur du tube
-real Lc = largeur;      // longueur partie chauffe
-
-// paramètres de l'équation aux dérivées partielles
-// liés à la géométrie
-// real vbar = 1e-12;   // volume caractéristique
-real xbar = largeur; // diamètre canaux
-real ubar = 1e-3;    // vitesse de l’écoulement
-
-// liés au fluide
-real rho = 1e3;      // masse volumique
-real eta = 1.005e-6; // viscosité dynamique (eau a 20 degrés)
-real gamma = 0.1;    // viscosité/diffusion
-
-// liés à l'expérience
-real tbar = 1;       // temps caractéristique
-real pbar = 1e4;     // pression caractéristique 
-
-// variables intermédiaires
-
-real lambda = xbar * pbar / (rho * eta * ubar);
+real largeur = 1e-6;        // diamètre / largeur
+real longueur = 5*largeur;  // longueur du tube
+real Lc = 1*largeur;        // longueur partie chauffe
 
 // paramètres du maillage
 
-real h = largeur * 2e-2;
+real h = largeur * 1e-1;
 
 // taille des éléments
 
-int Nxfroid = (Long - Lc)/(2*h) + 1;
+int Nxfroid = (longueur - Lc)/(2*h) + 1;
 int Nyfroid = largeur / h + 1;
 int Nxchaud = Lc / h + 1;
 int Nychaud = Nyfroid;
@@ -51,55 +32,55 @@ border bentree(t = 0, 1) {
 }
 
 border bf1(t = 0, 1) {
-  x = (Long - Lc)*t/2;
+  x = (longueur - Lc)*t/2;
   y = 0;
   label = labelNeutre; // neutre
 }
 
 border bf2(t = 0, 1) {
-  x = (Long - Lc)/2 - t*(Long - Lc)/2;
+  x = (longueur - Lc)/2 - t*(longueur - Lc)/2;
   y = largeur;
   label = labelNeutre;
 }
 
 border bf3(t = 0, 1) {
-  x = (Long + Lc)/2 + t*(Long - Lc)/2;
+  x = (longueur + Lc)/2 + t*(longueur - Lc)/2;
   y = 0;
   label = labelNeutre;
 }
 
 border bf4(t = 0, 1) {
-  x = Long - t*(Long - Lc)/2;
+  x = longueur - t*(longueur - Lc)/2;
   y = largeur;
   label = labelNeutre;
 }
 
 border bc1(t = 0, 1) {
-  x = (Long - Lc)/2 + t*Lc;
+  x = (longueur - Lc)/2 + t*Lc;
   y = 0;
   label = labelChauffex; // chauffe
 }
 
 border bc2(t = 0, 1) {
-  x = (Long + Lc)/2;
+  x = (longueur + Lc)/2;
   y = t*largeur;
   label = labelChauffey;
 }
 
 border bc3(t = 0, 1) {
-  x = (Long + Lc)/2 - t*Lc;
+  x = (longueur + Lc)/2 - t*Lc;
   y = largeur;
   label = labelChauffex;
 }
 
 border bc4(t = 0, 1) {
-  x = (Long - Lc)/2;
+  x = (longueur - Lc)/2;
   y = largeur*(1-t);
   label = labelChauffey;
 }
 
 border bsortie(t = 0, 1) {
-  x = Long;
+  x = longueur;
   y = largeur*t;
   label = labelSortie;  // sortie
 }
@@ -113,4 +94,5 @@ mesh Th = buildmesh(bentree(Nyfroid*2) + bsortie(Nyfroid)
 
 plot(Th, wait = 1, cmm = "maillage Th");
 
-savemesh(Th, "tuyau-droit.msh");
+savemesh(Th, "../tuyau-droit-gros-1700-elm.msh");
+

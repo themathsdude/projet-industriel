@@ -54,3 +54,32 @@ u = ubarre U, donc ubarre c'est norme de U ? donc U est de norme 1 ?
 
 ou c'est pour que Laplacien U soir adimensionné, donc Laplacien U = 1 ? et
 U quelconque
+
+
+fonctionnait pour tube droit stokes :
+
+    /*
+  - int1d(Th, labelEntree)(
+                            - typeSchema * alphaOmega * eta * 
+                            (dx(ux)*vx + dx(uy)*vx )
+    )
+    
+  - int1d(Th, labelSortie)(
+                            typeSchema * alphaOmega * eta * 
+                            (dx(ux)*vx + dx(uy)*vx )
+    )
+    */
+    
+    
+    
+        /*
+  - int1d(Th, labelEntree)(
+                            pressionEntree * vx
+    )
+    
+    
+  - int1d(Th, labelSortie)(
+                            - pressionSortie * vx
+    )
+    */
+    

@@ -111,29 +111,29 @@ border basChauffe(t = longueurOscillations, 0) {
   if (rayonTube * k > 1) {
     cout << "la geometrie n est pas bonne !!!!!!" << endl;
   }
-  alpha = atan(hauteurOscillations * k * cos(k * t));  // angles de déplacement
-  x = p9[0] + translationChauffe[0] + t - rayonTube * sin(alpha);
+  real beta = atan(hauteurOscillations * k * cos(k * t));  // angles de déplacement
+  x = p9[0] + translationChauffe[0] + t - rayonTube * sin(beta);
   y = translationChauffe[1] + hauteurOscillations * sin(k * t) +
-      rayonTube * cos(alpha);
+      rayonTube * cos(beta);
   label = labelBasChauffe;
 }
 
 border hautChauffe(t = 0, longueurOscillations) {
-  alpha = atan(hauteurOscillations * k * cos(k * t));
-  x = p1[0] + translationChauffe[0] + t + rayonTube * sin(alpha);
+  real beta = atan(hauteurOscillations * k * cos(k * t));
+  x = p1[0] + translationChauffe[0] + t + rayonTube * sin(beta);
   y = translationChauffe[1] + hauteurOscillations * sin(k * t) -
-      rayonTube * cos(alpha);
+      rayonTube * cos(beta);
   label = labelHautChauffe;
 }
 
-real alpha0 = atan(hauteurOscillations * k);
+real beta0 = atan(hauteurOscillations * k);
 real[int] pj1 = [
-  p9[0] + translationChauffe[0] - rayonTube * sin(alpha0),
-  translationChauffe[1] + rayonTube *cos(alpha0)
+  p9[0] + translationChauffe[0] - rayonTube * sin(beta0),
+  translationChauffe[1] + rayonTube *cos(beta0)
 ];
 real[int] pj9 = [
-  p1[0] + translationChauffe[0] + rayonTube * sin(alpha0),
-  translationChauffe[1] - rayonTube *cos(alpha0)
+  p1[0] + translationChauffe[0] + rayonTube * sin(beta0),
+  translationChauffe[1] - rayonTube *cos(beta0)
 ];
 
 
@@ -169,7 +169,7 @@ border jonctionHaut(t = 1, 0) {
 }
 
 border jonctionBas2(t = 1, 0) {
-  x = p9[0] + translationChauffe[0] + longueurOscillations - rayonTube * sin(alpha0) + (1-t) * (pj9[0] - p9[0]);
+  x = p9[0] + translationChauffe[0] + longueurOscillations - rayonTube * sin(beta0) + (1-t) * (pj9[0] - p9[0]);
   y = p9[1] + (coeffsj9[3] * t ^ 3 + coeffsj9[2] * t ^
                2 + coeffsj9[1] * t + coeffsj9[0]) *
                   (pj9[1] - p9[1]);
@@ -177,7 +177,7 @@ border jonctionBas2(t = 1, 0) {
 }
 
 border jonctionHaut2(t = 0, 1) {
-  x = p1[0] + translationChauffe[0] + longueurOscillations + rayonTube * sin(alpha0) + (1-t) * (pj1[0] - p1[0]);
+  x = p1[0] + translationChauffe[0] + longueurOscillations + rayonTube * sin(beta0) + (1-t) * (pj1[0] - p1[0]);
   y = p1[1] + (coeffsj1[3] * t ^ 3 + coeffsj1[2] * t ^
                2 + coeffsj1[1] * t + coeffsj1[0]) *
                   (pj1[1] - p1[1]);
