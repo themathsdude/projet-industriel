@@ -73,8 +73,8 @@ int labelSortie = 4;
 // définition des espaces éléments finis et du problème
 
 fespace Ph0(Th, P0);        // pour les indicatrices de région
-fespace Ph1(Th, P1);        // pour la pression
-fespace Ph2(Th, P2);        // pour la température
+fespace Ph1(Th, P1);        // pour la pression, température et viscosité
+fespace Ph2(Th, P2);        // pour la concentration
 fespace Vh2(Th, [P2, P2]);  // pour la vitesse
 
 Ph0 indicRegion = region;
