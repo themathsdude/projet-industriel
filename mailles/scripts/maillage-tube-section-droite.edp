@@ -94,5 +94,5 @@ mesh Th = buildmesh(bentree(Nyfroid*2) + bsortie(Nyfroid)
 
 plot(Th, wait = 1, cmm = "maillage Th");
 
-savemesh(Th, "../tuyau-droit-gros-1700-elm.msh");
+savemesh(Th, "../tuyau-droit.msh");
 

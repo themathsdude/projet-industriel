@@ -10,7 +10,7 @@ real longueurTube3 = 1e-5;  // longueur sur l'axe des abscisses sortie de chauff
 
 // paramètres du maillage
 
-real h = diametreTube * 5e-2;
+real h = diametreTube * 1e-1;
 
 // paramètres de la section de chauffe
 
