@@ -1,4 +1,4 @@
-mesh Th = readmesh("mailles/tuyau-droit-gros-1700-elm.msh");
+mesh Th = readmesh("../mailles/tuyau-droit.msh");
 
 // paramètres de la géométrie
 
