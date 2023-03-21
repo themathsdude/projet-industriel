@@ -38,7 +38,7 @@ Re = ((xbar^2)/(visc(20)*tbar))^2;
 
 // labels des bords du maillage
 
-mesh Th = readmesh("mailles/projet-section-constante-gros-3000-elm.msh");
+mesh Th = readmesh("../mailles/projet-section-constante.msh");
 
 real alpha = pi / 4;     // angle incidence
 real longueurTube1 = 1;  // longueur du tube d'injection
