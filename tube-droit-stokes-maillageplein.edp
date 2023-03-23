@@ -49,12 +49,12 @@ plot(Th, wait = 1, cmm = "maillage Th");
 // paramètres de l'équation aux dérivées partielles
 // liés à la géométrie
 real xbar = largeur;    // diamètre canaux
-real ubar = 1e-3;    	// vitesse de l’écoulement
+real ubar = 1e-3;       // vitesse de l’écoulement
 
 // liés au fluide
-real rho = 1e3;      	// masse volumique
-real eta = 1.753e-3; 	// viscosité dynamique (eau a 0 degrés)
-real eta20 = 1e-3;	// viscosité dynamique (eau a 20 degrés)
+real rho = 1e3;         // masse volumique
+real eta = 1.753e-3;    // viscosité dynamique (eau a 0 degrés)
+real eta20 = 1e-3;      // viscosité dynamique (eau a 20 degrés)
 real gamma = 7e-13;     // diffusion
 
 // liés à l'expérience
@@ -77,11 +77,11 @@ func uyini = 0;
 
 // paramètres de la simulation
 
-int typeSchema = 1;  		// Euler implicite
-real stabilisation = 1e-10; 	// coefficient de stabilisation
-real T = 5 * tbar / rho;	// temps final de simulation
-real tau = T / 20;		// pas de simulation
-int M = T / tau;		// nombre d'instants de simulation
+int typeSchema = 1;          // Euler implicite
+real stabilisation = 1e-10;  // coefficient de stabilisation
+real T = 5 * tbar / rho;     // temps final de simulation pour la vitesse
+real tau = T / 20;           // pas de simulation
+int M = T / tau;             // nombre d'instants de simulation
 
 // fonction d'adaptation de la viscosité dynamique
 
@@ -129,9 +129,9 @@ macro divergence(ux, uy) (dx(ux) + dy(uy))  //
 
 // paramètres du problème
 
-Vh2 [ux, uy]; // vitesse recherchée
-Vh2 [uux, uuy]; // vitesses à l'instant précédent
-Ph1 p;        // pression recherchée
+Vh2 [ux, uy];     // vitesse recherchée
+Vh2 [uux, uuy];   // vitesses à l'instant précédent
+Ph1 p;            // pression recherchée
 Vh2 [uxinih, uyinih] = [ uxini, uyini ]; // vitesses initiales interpolées
 
 Vh2 [vx, vy]; // fonction test vitesse
