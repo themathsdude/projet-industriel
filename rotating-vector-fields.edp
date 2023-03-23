@@ -1,0 +1,94 @@
+real alpha0 = pi / 4;     // angle incidence
+real longueurTube1 = 1e-5;  // longueur du tube d'injection
+real longueurTube2 = 1e-5;  // longueur sur l'axe des abscisses de la suite du Y
+real longueurTube3 = 1e-5;  // longueur sur l'axe des abscisses sortie de chauffe
+real longueurOscillations = 2e-5;
+real diametreTube = 1e-6;
+real rayonTube = diametreTube / 2;
+real h = diametreTube * 1e-1;
+
+real longueurTube1x = longueurTube1 * cos(alpha0);
+
+real largeur = diametreTube;        // diamètre / largeur
+real longueur = longueurTube1 + longueurTube2
+		 + longueurOscillations + longueurTube3;
+real lbar = longueur;
+
+// liés à la géométrie
+real xbar = largeur;        // diamètre canaux
+real ubar = 1e-3;           // vitesse de l’écoulement
+
+// liés au fluide
+real rho = 1e3;             // masse volumique
+real eta = 1.753e-3; 	    // viscosité dynamique (eau a 0 degrés)
+real eta20 = 1e-3; 	    // viscosité dynamique (eau a 20 degrés)
+real rayonParticule = 1e-8; // taille des molécules d'eau
+real gamma = 7e-22 / rayonParticule;         // diffusion
+
+// liés à l'expérience
+real tbar = sqrt(rho * xbar^3 / (eta20 * ubar));       // temps caractéristique
+//real tbar = 1e-3;
+real pbar = 8 * ubar * eta20 * lbar / (xbar^2);
+real cbar = 200;        // concentration caractéristique
+real tempFroide = 20;   // en degrés
+real tempChaude = 90;
+
+// conditions aux bords
+
+real pressionAtm = 0;
+real pressionEntree = pressionAtm + pbar;
+real pressionSortie = pressionAtm;
+
+real dP = pressionEntree - pressionSortie;
+
+mesh Th = square(20, 20, [2*largeur*x, - largeur + 2* largeur*y]);
+
+real [int] Ry = [sin(alpha0), cos(alpha0)];
+
+func uxini1 = - dP/(2*eta20*lbar)*(((y - longueurTube1x *tan(alpha0))*cos(alpha0) + x*sin(alpha0)) - largeur)
+    *(((y - longueurTube1x *tan(alpha0))*cos(alpha0) + x*sin(alpha0)))*cos(alpha0);  // vitesse entrée
+    
+func uyini1 = - dP/(2*eta20*lbar)*(((y - longueurTube1x *tan(alpha0))*cos(alpha0) + x*sin(alpha0)) - largeur)
+    *(((y - longueurTube1x *tan(alpha0))*cos(alpha0) + x*sin(alpha0)))*sin(- alpha0);
+
+func uxini2 = - dP/(2*eta20*lbar)*(((y + longueurTube1x *tan(alpha0))*cos(alpha0) - x*sin(alpha0)) + largeur)
+    *(((y + longueurTube1x *tan(alpha0))*cos(alpha0) - x*sin(alpha0)))*cos(alpha0);  // vitesse entrée
+    
+func uyini2 = - dP/(2*eta20*lbar)*(((y + longueurTube1x *tan(alpha0))*cos(alpha0) - x*sin(alpha0)) + largeur)
+    *(((y + longueurTube1x *tan(alpha0))*cos(alpha0) - x*sin(alpha0)))*sin(alpha0);
+
+
+fespace Ph0(Th, P0);        // pour les indicatrices de région
+fespace Ph1(Th, P1);        // pour la pression, température et viscosité
+fespace Ph2(Th, P2);        // pour la concentration
+fespace Vh2(Th, [P2, P2]);  // pour la vitesse
+
+
+
+
+
+Vh2 [uxinih1, uyinih1] = [ uxini1, uyini1]; // vitesses initiales interpolées
+Vh2 [uxinih2, uyinih2] = [ uxini2, uyini2]; // vitesses initiales interpolées
+plot([uxinih1, uyinih1], value = 1, fill = 1, wait = 1);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

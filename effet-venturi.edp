@@ -1,0 +1,247 @@
+//--------Maillage---------
+
+// paramètres de la géométrie
+
+real largeur = 1e-6;         // diamètre / largeur
+real longueur = 5*largeur;  // longueur du tube
+real Lc = 1*largeur;         // longueur partie chauffe
+
+// paramètres du maillage
+
+real h = largeur * 5e-2;
+
+// taille des éléments
+
+int Nx = longueur / h + 1;
+int Ny = largeur / h + 1;
+
+// labels des bords
+
+int labelNeutre = 0;
+int labelEntree = 1;
+int labelSortie = 2;
+
+// le point A est en bas à gauche, il a pour coordonnées A(xA, yA)
+// le point B est en haut à droite, il a pour coordonnées B(xB, yB)
+
+real frac = 1./2;
+
+real[int] p1 = [ 0, 0 ];
+real[int] p2 = [ longueur, largeur/2 - frac * largeur/2];
+real[int] p3 = [ longueur, largeur/2 + frac * largeur/2];
+real[int] p4 = [ 0, largeur ];
+
+cout << frac << endl << p3 << endl << p4;
+
+//Omega F (partie gauche)
+border bordBas(t = 0, 1) {
+  x = p1[0] + t * (p2[0] - p1[0]);
+  y = p1[1] + t * (p2[1] - p1[1]);
+  label = labelNeutre;
+}
+
+border bordDroit(t = 0, 1) {
+  x = p2[0] + t * (p3[0] - p2[0]);
+  y = p2[1] + t * (p3[1] - p2[1]);
+  label = labelSortie;
+}
+
+border bordHaut(t = 0, 1) {
+  x = p3[0] + t * (p4[0] - p3[0]);
+  y = p3[1] + t * (p4[1] - p3[1]);
+  label = labelNeutre;
+}
+
+border bordGauche(t = 0, 1) {
+  x = p4[0] + t * (p1[0] - p4[0]);
+  y = p4[1] + t * (p1[1] - p4[1]);
+  label = labelEntree;
+}
+
+mesh Th = buildmesh(
+                    bordGauche(Ny) + bordDroit(Ny)
+                    + bordBas(Nx) + bordHaut(Nx)
+                    );
+
+// affichage du maillage
+
+plot(Th, wait = 1, cmm = "maillage Th");
+
+//-------------Paramètres------------
+
+// paramètres de l'équation aux dérivées partielles
+// liés à la géométrie
+real xbar = largeur;    // diamètre canaux
+real ubar = 1e-3;    	// vitesse de l’écoulement
+
+// liés au fluide
+real rho = 1e3;      	// masse volumique
+real eta = 1.753e-3;    // viscosité dynamique (eau a 0 degrés)
+real eta20 = 1e-3;      // viscosité dynamique (eau a 20 degrés)
+real gamma = 7e-13;     // diffusion
+
+// liés à l'expérience
+real tbar = sqrt(rho * xbar^3 / (eta20 * ubar));    // temps caractéristique
+real pbar = 8 * ubar * eta20 * longueur / (xbar^2);
+real cbar = 200;        // concentration caractéristique
+real tempFroide = 20;   // en degrés
+real tempChaude = 20;
+
+//-----------Conditions aux bords-------------
+
+real pressionAtm = 0;
+real pressionEntree = pressionAtm + pbar;
+real pressionSortie = pressionAtm;
+
+real dP = pressionEntree - pressionSortie;
+func uxini = - dP/(2*eta20*longueur)*(y-largeur)*(y);  // vitesse entrée
+func uyini = 0;
+
+// paramètres de la simulation
+
+int typeSchema = 1;  		// Euler implicite
+real stabilisation = 1e-10; 	// coefficient de stabilisation
+real T = 5 * tbar / rho * 1e2;	// temps final de simulation
+real tau = T / 20;		// pas de simulation
+int M = T / tau;		// nombre d'instants de simulation
+
+// fonction d'adaptation de la viscosité dynamique
+
+func real alpha(real theta){
+    real a, b, c, d, e, f;
+    a = -2.53958848e-16;
+    b = -2.76506905e-12;
+    c = 5.95400333e-10;
+    d = -4.52299564e-08;
+    e = 1.72329803e-06;
+    return (a * theta^4 + b * theta^3 + c * theta^2 + d * theta + e)/(1.753*1e-6);
+}
+
+// définition des espaces éléments finis et du problème
+
+fespace Ph0(Th, P0);        // pour les indicatrices de région
+fespace Ph1(Th, P1);        // pour la pression, température et viscosité
+fespace Vh2(Th, [P2, P2]);  // pour la vitesse
+
+// fonction pour la viscosité
+
+real hChauffe = 5*h;
+
+Ph1 alphaOmega = 
+    ((longueur - Lc)/2 < x & x < (longueur + Lc)/2)
+        * alpha(tempChaude)
+    + (x < (longueur - Lc)/2 - hChauffe || (longueur + Lc)/2 + hChauffe < x )
+        * alpha(tempFroide)
+    + ((longueur - Lc)/2 - hChauffe < x & x < (longueur - Lc)/2)
+        * (alpha(tempFroide) + (alpha(tempChaude) - alpha(tempFroide))
+        * (x - ((longueur - Lc)/2 - hChauffe)) / hChauffe)
+    + ((longueur + Lc)/2 < x & x < (longueur + Lc)/2 + hChauffe)
+        * (alpha(tempChaude) + (alpha(tempFroide) - alpha(tempChaude))
+        * (x - (longueur + Lc)/2) / hChauffe)
+        ;
+plot(alphaOmega, value = 1, fill = 1, wait = 1);
+
+// macros
+
+macro grad(u) [dx(u), dy(u)]                //
+macro grad2(u) [grad(u#x), grad(u#y)]       //
+macro divergence(ux, uy) (dx(ux) + dy(uy))  //
+
+//--------Problème de stokes-----------
+
+// paramètres du problème
+
+Vh2 [ux, uy]; // vitesse recherchée
+Vh2 [uux, uuy]; // vitesses à l'instant précédent
+Ph1 p;        // pression recherchée
+Vh2 [uxinih, uyinih] = [ uxini, uyini ]; // vitesses initiales interpolées
+
+Vh2 [vx, vy]; // fonction test vitesse
+Ph1 q;        // fonction test pression
+
+// [uux, uuy] = [0, 0];  // conditions initiales nulles
+
+problem Stokes([ ux, uy, p ], [ vx, vy, q ]) =
+
+    // terme inertiel
+    
+    int2d(Th)(
+                (rho / tau ) * [ux, uy]' * [vx, vy]
+    )
+  + int2d(Th)(
+                - (rho / tau ) * [uux, uuy]' * [vx, vy]
+    )
+    
+    // termes de viscosité, incompressibilité, pression
+    
+  - int2d(Th)(
+                typeSchema * (
+                - alphaOmega * eta * 
+                (grad(ux) ' * grad(vx) + grad(uy)' * grad(vy))
+                + divergence(ux, uy) * q
+                + divergence(vx, vy) * p
+                //+ stabilisation * p * q
+                )
+    )
+    
+    // termes de bord en flux sortant
+
+  - int1d(Th, labelEntree, labelSortie)(
+                            typeSchema * alphaOmega * eta * N.x *
+                            (dx(ux)*vx + dx(uy)*vx )
+    )
+    
+
+    // terme de bord en pression
+
+  - int1d(Th, labelEntree, labelSortie)(
+                            - p * vx * N.x
+    )
+    
+    // termes qui dépendent de u pour l'autre schéma :
+    
+  - int2d(Th)(
+                (1 - typeSchema) * (
+                - alphaOmega * eta * 
+                (grad(uux) ' * grad(vx) + grad(uuy)' * grad(vy))
+                + divergence(uux, uuy) * q
+                //+ stabilisation * p * q
+                )
+    )
+  - int2d(Th)(
+                (1 - typeSchema) * divergence(vx, vy) * p
+  )
+    
+    // termes de bord en flux sortant
+
+  - int1d(Th, labelEntree, labelSortie)(
+                            (1 - typeSchema) * alphaOmega * eta * N.x *
+                            (dx(uux) * vx + dx(uuy) * vx)
+    )
+    
+
+    //+ on(labelEntree, ux = uxinih, uy = uyinih)  // entree profil Poiseuille
+    + on(labelEntree, uy = 0)  // entree vitesse unidimensionnelle
+    + on(labelEntree, p = pressionEntree)
+    + on(labelSortie, p = pressionSortie)
+    + on(labelNeutre, ux = 0, uy = 0)    // bords solides
+    ;
+
+// résolution du problème pas à pas
+
+for (int i = 1; i <= M; i++){
+    // résolution du problème de Stokes
+    Stokes;
+    
+    // mise à jour des conditions
+    [uux, uuy] = [ux, uy];
+    
+    // affichage
+    plot(p, [ ux, uy ],  wait = 1, fill = 1, value = 1, 
+        cmm = "champ scalaire de pression P1 et champ vectoriel de vitesse P2");
+    cout << "t =" << tau*i << endl;
+}
+
+
+
+
