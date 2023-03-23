@@ -27,8 +27,9 @@ real ubar = 1e-3;           // vitesse de l’écoulement
 // liés au fluide
 real rho = 1e3;             // masse volumique
 real eta = 1.753e-3; 	    // viscosité dynamique (eau a 0 degrés)
-real eta20 = 1e-3; 	        // viscosité dynamique (eau a 20 degrés)
-real gamma = 2e-14;         // diffusion
+real eta20 = 1e-3; 	    // viscosité dynamique (eau a 20 degrés)
+real rayonParticule = 1e-7; // taille des molécules d'eau
+real gamma = 7e-22 / rayonParticule;         // diffusion
 
 // liés à l'expérience
 real tbar = sqrt(rho * xbar^3 / (eta20 * ubar));       // temps caractéristique
@@ -45,10 +46,18 @@ real pressionEntree = pressionAtm + pbar;
 real pressionSortie = pressionAtm;
 
 real dP = pressionEntree - pressionSortie;
-func uxini = - dP/(2*eta20*lbar)*(y-largeur)*(y);  // vitesse entrée
-func uyini = 0;
 
-cout << "pbar = " << pbar << endl << "tbar = " << tbar << endl;
+func uxini1 = - dP/(2*eta20*lbar)*(((y - longueurTube1x *tan(alpha0))*cos(alpha0) + x*sin(alpha0)) - largeur)
+    *(((y - longueurTube1x *tan(alpha0))*cos(alpha0) + x*sin(alpha0)))*cos(alpha0);  // vitesse entrée
+    
+func uyini1 = - dP/(2*eta20*lbar)*(((y - longueurTube1x *tan(alpha0))*cos(alpha0) + x*sin(alpha0)) - largeur)
+    *(((y - longueurTube1x *tan(alpha0))*cos(alpha0) + x*sin(alpha0)))*sin(- alpha0);
+
+func uxini2 = - dP/(2*eta20*lbar)*(((y + longueurTube1x *tan(alpha0))*cos(alpha0) - x*sin(alpha0)) + largeur)
+    *(((y + longueurTube1x *tan(alpha0))*cos(alpha0) - x*sin(alpha0)))*cos(alpha0);  // vitesse entrée
+    
+func uyini2 = - dP/(2*eta20*lbar)*(((y + longueurTube1x *tan(alpha0))*cos(alpha0) - x*sin(alpha0)) + largeur)
+    *(((y + longueurTube1x *tan(alpha0))*cos(alpha0) - x*sin(alpha0)))*sin(alpha0);
 
 // vitesse de l'ordre de pbar * xbar^2 / (2 * 4 * eta * L) 
 // = pbar * 1e-12 / (8 * 1e-3 * L)
@@ -60,9 +69,14 @@ cout << "pbar = " << pbar << endl << "tbar = " << tbar << endl;
 
 int typeSchema = 1;         // Euler implicite
 real stabilisation = 1e-10; // coefficient de stabilisation
-real T = 10 * longueur / ubar;   // temps final de simulation
+real T = longueur / ubar * 1e2;   // temps final de simulation pour la concentration
+//real T = 5 * tbar / rho;    // temps final de simulation pour la vitesse
 real tau = T / 20;          // pas de simulation
 int M = T / tau;            // nombre d'instants de simulation
+
+cout << "pbar = " << pbar << endl 
+<< "tbar = " << tbar << endl 
+<< "T = " << T << endl;
 
 // labels des bords
 
@@ -116,7 +130,7 @@ Ph1 alphaOmega =
 Ph1 alphaOmega = (x1chauffe < x & x < x2finchauffe) ? 1 : 0.1;
 */
 real tempFroideK = tempFroide + 273;
-real tempChaudeK = tempChaude + 273;
+real tempChaudeK = tempChaude + 273 + 10 + 4e2;
 
 Ph1 thetaOmega = 
     (x1chauffe < x & x < x2finchauffe)
@@ -145,7 +159,9 @@ macro divergence(ux, uy) (dx(ux) + dy(uy))  //
 Vh2 [ux, uy];   // vitesse recherchée
 Vh2 [uux, uuy]; // vitesses à l'instant précédent
 Ph1 p;          // pression recherchée
-Vh2 [uxinih, uyinih] = [ uxini, uyini ]; // vitesses initiales interpolées
+Vh2 [uxinih1, uyinih1] = [ uxini1, uyini1]; // vitesses initiales interpolées
+Vh2 [uxinih2, uyinih2] = [ uxini2, uyini2]; // vitesses initiales interpolées
+// plot([uxinih2, uyinih2], value = 1, fill = 1, wait = 1);
 
 Vh2 [vx, vy];   // fonction test vitesse
 Ph1 q;          // fonction test pression
@@ -155,6 +171,7 @@ Ph2 cc;         // concentration à l'instant précédent
 // pas besoin d'initialiser c, on le cherche
 
 cc = 0;
+[uux, uuy] = [0, 0];
 
 // problème de Stokes
 
@@ -213,13 +230,15 @@ problem Stokes([ ux, uy, p ], [ vx, vy, q ]) =
     // termes de bord en flux sortant
 
   - int1d(Th, labelEntree1, labelEntree2, labelSortie)(
-                            (1 - typeSchema) * alphaOmega * eta * N.x *
-                            (dx(uux) * vx + dx(uuy) * vx)
+                            (1 - typeSchema) * alphaOmega * eta * (
+                            [N.x, N.y] ' * grad(ux) * vx 
+                          + [N.x, N.y] ' * grad(uy) * vy )
     )
     
 
-    //+ on(labelEntree, ux = uxinih, uy = uyinih)  // entree profil Poiseuille
-    //+ on(labelEntree, uy = uyinih)  // entree vitesse unidimensionnelle
+    //+ on(labelEntree1, ux = uxinih1, uy = uyinih1)
+    //+ on(labelEntree2, ux = uxinih2, uy = uyinih2)
+    // entree profil Poiseuille
     + on(labelEntree1, p = pressionEntree)
     + on(labelEntree2, p = pressionEntree)
     + on(labelSortie, p = pressionSortie)
@@ -269,11 +288,11 @@ for (int i = 1; i <= M; i++){
     // mise à jour des conditions
     cc = c;
     [uux, uuy] = [ux, uy];
-
+    
     // affichage
     plot(c, value = 1, fill = 1, wait = 1, cmm = "concentration P2");
-    //plot(p, [ux, uy], value = 1, fill = 1, wait = 1, cmm = "vitesse P2");
-    // plot( [ ux, uy ], value = 1, fill = 1, cmm = "champ de vitesse P2");
+    //plot(p, [ux, uy], coef = 5e-4, value = 1, fill = 1, wait = 1, cmm = "vitesse P2");
+    //plot(p, [ux, uy], coef = 1e-3, value = 1, fill = 1, wait = 1, cmm = "champ de vitesse P2");
     cout << "t =" << tau*i << endl;
 }
 
