@@ -109,6 +109,7 @@ Ph2 cc;         // concentration à l'instant précédent
 // pas besoin d'initialiser c, on le cherche
 
 cc = 0;
+[uux, uuy] = [0, 0];
 
 // problème de Stokes
 
@@ -171,9 +172,9 @@ problem Stokes([ ux, uy, p ], [ vx, vy, q ]) =
     )
     
 
-    //+ on(labelEntree, ux = uxinih, uy = uyinih)  // entree profil Poiseuille
-    + on(labelEntree, uy = uyinih)  // entree vitesse unidimensionnelle
-    + on(labelEntree, p = pressionEntree)
+    + on(labelEntree, ux = uxinih, uy = uyinih)  // entree profil Poiseuille
+    //+ on(labelEntree, uy = uyinih)  // entree vitesse unidimensionnelle
+    //+ on(labelEntree, p = pressionEntree)
     + on(labelSortie, p = pressionSortie)
     + on(labelNeutre, labelChauffex, ux = 0, uy = 0)    // bords solides
     ;
@@ -201,18 +202,19 @@ problem ConvectionDiffusion(c, v) =
                 + grad(cc) ' * [ux, uy] * v)
     )
     //- int1d(Th, labelNeutre)(thetaOmega * gamma * N.x * dx(cc) * v )
-    
+    /*
     - int1d(Th, labelEntree)(
                 (1 - typeSchema) * thetaOmega * gamma 
                 * grad(cc)' * [N.x, N.y] * v 
     )
+    */
     + on(labelEntree, c = cbar)
     ;
 
 
 // résolution du problème pas à pas
 
-for (int i = 1; i <= M; i++){    
+for (int i = 1; i <= M; i++){
     // résolution des problèmes
     Stokes;
     ConvectionDiffusion;
@@ -226,18 +228,6 @@ for (int i = 1; i <= M; i++){
     // plot( [ ux, uy ], value = 1, fill = 1, cmm = "champ de vitesse P2");
     cout << "t =" << tau*i << endl;
 }
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
