@@ -69,7 +69,7 @@ func uyini2 = - dP/(2*eta20*lbar)*(((y + longueurTube1x *tan(alpha0))*cos(alpha0
 
 int typeSchema = 1;         // Euler implicite
 real stabilisation = 1e-10; // coefficient de stabilisation
-real T = longueur / ubar * 1e2;   // temps final de simulation pour la concentration
+real T = longueur / ubar;   // temps final de simulation pour la concentration
 //real T = 5 * tbar / rho;    // temps final de simulation pour la vitesse
 real tau = T / 20;          // pas de simulation
 int M = T / tau;            // nombre d'instants de simulation
@@ -130,7 +130,7 @@ Ph1 alphaOmega =
 Ph1 alphaOmega = (x1chauffe < x & x < x2finchauffe) ? 1 : 0.1;
 */
 real tempFroideK = tempFroide + 273;
-real tempChaudeK = tempChaude + 273 + 10 + 4e2;
+real tempChaudeK = tempChaude + 273;// + 10 + 4e2;
 
 Ph1 thetaOmega = 
     (x1chauffe < x & x < x2finchauffe)
@@ -170,8 +170,8 @@ Ph2 c, v;       // concentration et fonction test
 Ph2 cc;         // concentration à l'instant précédent
 // pas besoin d'initialiser c, on le cherche
 
-cc = 0;
 [uux, uuy] = [0, 0];
+cc = 0;
 
 // problème de Stokes
 
@@ -199,7 +199,7 @@ problem Stokes([ ux, uy, p ], [ vx, vy, q ]) =
     )
     
     // termes de bord en flux sortant
-
+    
   - int1d(Th, labelEntree1, labelEntree2, labelSortie)(
                             typeSchema * alphaOmega * eta * (
                             [N.x, N.y] ' * grad(ux) * vx 
@@ -249,28 +249,33 @@ problem Stokes([ ux, uy, p ], [ vx, vy, q ]) =
 // problème de convection-diffusion
 
 problem ConvectionDiffusion(c, v) = 
+
+        // termes inertiels
+
       int2d(Th)(c * v / tau)
       
     - int2d(Th)(cc * v / tau)
+    
+        // termes de convection et de viscosité
     
     + int2d(Th)(
     		    typeSchema * (thetaOmega * gamma * grad(c) ' * grad(v)
             	+ grad(c) ' * [ux, uy] * v)
     )
+    
+        // terme de bord
 
-    //- int1d(Th, labelNeutre)(thetaOmega * gamma * N.x * dx(cc) * v )
-    /*
-    - int1d(Th, labelEntree)(
+    - int1d(Th, labelSortie)(
                 typeSchema * thetaOmega * gamma * grad(c)' * [N.x, N.y] * v
     )
-    */
+        // termes pour le schéma Euler Explicite
+        
     + int2d(Th)(
                 (1 - typeSchema) * (thetaOmega * gamma * grad(cc) ' * grad(v)
                 + grad(cc) ' * [ux, uy] * v)
     )
-    //- int1d(Th, labelNeutre)(thetaOmega * gamma * N.x * dx(cc) * v )
     
-    - int1d(Th, labelEntree1, labelEntree2)(
+    - int1d(Th, labelSortie)(
                 (1 - typeSchema) * thetaOmega * gamma 
                 * grad(cc)' * [N.x, N.y] * v 
     )
@@ -292,7 +297,7 @@ for (int i = 1; i <= M; i++){
     // affichage
     plot(c, value = 1, fill = 1, wait = 1, cmm = "concentration P2");
     //plot(p, [ux, uy], coef = 5e-4, value = 1, fill = 1, wait = 1, cmm = "vitesse P2");
-    //plot(p, [ux, uy], coef = 1e-3, value = 1, fill = 1, wait = 1, cmm = "champ de vitesse P2");
+    plot([ux, uy], coef = 1e-3, value = 1, fill = 1, wait = 1, cmm = "champ de vitesse P2");
     cout << "t =" << tau*i << endl;
 }
 
