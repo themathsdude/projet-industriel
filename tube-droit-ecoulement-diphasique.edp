@@ -1,7 +1,3 @@
-//--------Maillage---------l
-
-// paramètres de la géométrie
-
 real largeur = 1e-6;         // diamètre / largeur
 real longueur = 5*largeur;  // longueur du tube
 real Lc = 1*largeur;         // longueur partie chauffe
@@ -38,7 +34,7 @@ border bordBas(t = xA, xB) {x = t; y = yA; label = labelNeutre;};
 border bordDroit(t = yA, yB) {x = xB; y = t; label = labelSortie;};
 
 mesh Th = buildmesh(
-                    bordGauche1(Ny * 1e1) + bordGauche2(Ny* 1e1) + bordDroit(Ny)
+                    bordGauche1(Ny) + bordGauche2(Ny) + bordDroit(Ny)
                     + bordBas(Nx) + bordHaut(Nx)
                     );
 
@@ -51,14 +47,15 @@ plot(Th, wait = 1, cmm = "maillage Th");
 // paramètres de l'équation aux dérivées partielles
 // liés à la géométrie
 real xbar = largeur;    // diamètre canaux
-real ubar = 1e-3;       // vitesse de l’écoulement
+real ubar = 1e2;    	// vitesse de l’écoulement
 
 // liés au fluide
-real rho = 1e3;         // masse volumique
-real eta = 1.753e-3;    // viscosité dynamique (eau a 0 degrés)
-real eta20 = 1e-3;      // viscosité dynamique (eau a 20 degrés)
-real rayonParticule = 1e-7; // taille des molécules d'eau
-real gamma = 7e-22 / rayonParticule;         // diffusion
+real rho = 1e3;      	// masse volumique
+real eta = 1.753e-3; 	// viscosité dynamique (eau a 0 degrés)
+real eta20 = 1e-3; 	// viscosité dynamique (eau a 20 degrés)
+real etaAutre = 2e-3; // viscosité dynamique d'un autre fluide quelconque
+//real gamma = 7e-13;     // viscosité/diffusion
+real gamma = 0;
 
 // liés à l'expérience
 real tbar = sqrt(rho * xbar^3 / (eta20 * ubar));       // temps caractéristique
@@ -66,7 +63,7 @@ real tbar = sqrt(rho * xbar^3 / (eta20 * ubar));       // temps caractéristique
 real pbar = 8 * ubar * eta20 * longueur / (xbar^2);
 real cbar = 200;        // concentration caractéristique
 real tempFroide = 20;   // en degrés
-real tempChaude = 90;
+real tempChaude = 80;
 real lbar = longueur;
 
 //-----------Conditions aux bords-------------
@@ -76,15 +73,22 @@ real pressionEntree = pressionAtm + pbar;
 real pressionSortie = pressionAtm;
 
 real dP = pressionEntree - pressionSortie;
-func uxini = - dP/(2*eta20*longueur)*(y-largeur)*(y);  // vitesse entrée
+//func uxini = - dP/(2*eta20*longueur)*(y-largeur/2)*(y) ? y > largeur/2 : - dP/(2*etaAutre*longueur)*(y-largeur/2)*(y-largeur) ;  // vitesse entrée
 func uyini = 0;
 
+func real uxini(real eta1, real eta2){
+    if( y < largeur/2){
+        return - dP/(2*eta20*longueur)*(y-largeur/2)*(y);
+    }
+    else{ 
+        return - dP/(2*etaAutre*longueur)*(y-largeur/2)*(y-largeur); 
+    }
+}
 // paramètres de la simulation
 
-int typeSchema = 1;         // Euler implicite
+int typeSchema = 1;  		// Euler implicite
 real stabilisation = 1e-10; // coefficient de stabilisation
-real T = longueur / ubar;   // temps final de simulation pour la concentration
-//real T = 5 * tbar / rho;    // temps final de simulation pour la vitesse
+real T = 40 * longueur / ubar;   // temps final de simulation
 real tau = T / 20;          // pas de simulation
 int M = T / tau;            // nombre d'instants de simulation
 
@@ -123,8 +127,8 @@ Ph1 alphaOmega =
         * (x - (longueur + Lc)/2) / hChauffe)
         ;
 
-real tempFroideK = tempFroide + 273;
-real tempChaudeK = tempChaude + 273;// + 10 + 4e2;// + 5e2+ 2e3;
+real tempFroideK = tempFroide;
+real tempChaudeK = tempChaude + 273 + 1e0;
 
 Ph1 thetaOmega = 
     ((longueur - Lc)/2 < x & x < (longueur + Lc)/2)
@@ -152,7 +156,7 @@ macro divergence(ux, uy) (dx(ux) + dy(uy))  //
 Vh2 [ux, uy];   // vitesse recherchée
 Vh2 [uux, uuy]; // vitesses à l'instant précédent
 Ph1 p;          // pression recherchée
-Vh2 [uxinih, uyinih] = [ uxini, uyini ]; // vitesses initiales interpolées
+// Vh2 [uxinih, uyinih] = [ uxini, uyini ]; // vitesses initiales interpolées
 
 Vh2 [vx, vy];   // fonction test vitesse
 Ph1 q;          // fonction test pression
@@ -190,7 +194,7 @@ problem Stokes([ ux, uy, p ], [ vx, vy, q ]) =
     
     // termes de bord en flux sortant
 
-  - int1d(Th, labelEntree1, labelEntree2, labelSortie)(
+  - int1d(Th,  labelEntree1, labelEntree2, labelSortie)(
                             typeSchema * alphaOmega * eta * N.x *
                             (dx(ux)*vx + dx(uy)*vx )
     )
@@ -225,8 +229,8 @@ problem Stokes([ ux, uy, p ], [ vx, vy, q ]) =
     
 
     //+ on(labelEntree, ux = uxinih, uy = uyinih)  // entree profil Poiseuille
-    + on(labelEntree1, labelEntree2, uy = uyinih)  // entree vitesse unidimensionnelle
-    + on(labelEntree1, labelEntree2, p = pressionEntree)
+    //+ on(labelEntree, uy = uyinih)  // entree vitesse unidimensionnelle
+    //+ on(labelEntree, p = pressionEntree)
     + on(labelSortie, p = pressionSortie)
     + on(labelNeutre, ux = 0, uy = 0)    // bords solides
     ;
@@ -239,33 +243,35 @@ problem ConvectionDiffusion(c, v) =
     - int2d(Th)(cc * v / tau)
     
     + int2d(Th)(
-                typeSchema * (thetaOmega * gamma * grad(c) ' * grad(v)
-                + grad(c) ' * [ux, uy] * v)
+    		    typeSchema * (thetaOmega * gamma * grad(c) ' * grad(v)
+            	+ grad(c) ' * [ux, uy] * v)
     )
+
+    //- int1d(Th, labelNeutre)(thetaOmega * gamma * N.x * dx(cc) * v )
     /*
     - int1d(Th, labelEntree1, labelEntree2)(
-                typeSchema * thetaOmega * gamma * grad(c)' * [N.x, N.y] * v )
-    */
-    
-    - int1d(Th, labelSortie)(
                 typeSchema * thetaOmega * gamma * grad(c)' * [N.x, N.y] * v
     )
-    
+    */
     + int2d(Th)(
                 (1 - typeSchema) * (thetaOmega * gamma * grad(cc) ' * grad(v)
                 + grad(cc) ' * [ux, uy] * v)
     )
     //- int1d(Th, labelNeutre)(thetaOmega * gamma * N.x * dx(cc) * v )
     /*
-    - int1d(Th, labelEntree1, labelEntree2)(
+    - int1d(Th, labelEntree)(
                 (1 - typeSchema) * thetaOmega * gamma 
                 * grad(cc)' * [N.x, N.y] * v 
     )
     */
-    + on(labelEntree1, c = cbar)
-    + on(labelEntree2, c = 0)
+    + on(labelEntree1, labelEntree2, c = cbar)
     ;
 
+
+[uux, uuy] = [uxini(eta20, etaAutre), 0];  // conditions initiales nulles
+
+plot([ uux, uuy ],  wait = 1, fill = 1, value = 1, 
+        cmm = "uini");
 
 // résolution du problème pas à pas
 
@@ -280,7 +286,7 @@ for (int i = 1; i <= M; i++){
 
     // affichage
     plot(c, value = 1, fill = 1, wait = 1, cmm = "concentration P2");
-    //plot( [ ux, uy ], wait = 1, value = 1, fill = 1, cmm = "champ de vitesse P2");
+    plot( [ ux, uy ], value = 1, fill = 1, wait = 1, cmm = "champ de vitesse P2");
     cout << "t =" << tau*i << endl;
 }
 
