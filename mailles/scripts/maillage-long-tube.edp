@@ -1,0 +1,171 @@
+// paramètres du tube
+
+real diametreTube = 1e-6;
+real rayonTube = diametreTube / 2;
+
+real alpha = pi / 4;     // angle incidence
+real longueurTube1 = 1e-5;  // longueur du tube d'injection
+real longueurTube2 = 1e-5;  // longueur sur l'axe des abscisses de la suite du Y
+real longueurTube3 = 5e-5;  // longueur sur l'axe des abscisses sortie de chauffe
+
+// paramètres du maillage
+
+real h = diametreTube * 1e-1;
+
+// paramètres de la section de chauffe
+
+real[int] translationChauffe =
+    [ rayonTube, 0 ];  // vecteur de translation de la partie de chauffe
+real longueurOscillations = 5e-5;
+
+// variables intermédiaires
+
+// longueur sur l'axe des abscisses de la partie d'injection en Y
+real longueurTube1x = longueurTube1 * cos(alpha);
+// distance caractéristique pour section constante raccordement Y
+real d0 = diametreTube / sin(alpha) - rayonTube / tan(alpha);
+
+// liste des points de la partie en Y du tube
+
+real[int] p1 = [ longueurTube1x + d0 + longueurTube2, rayonTube ];
+real[int] p2 = [ longueurTube1x + d0, rayonTube ];
+real[int] p3 = [
+  diametreTube * sin(alpha),
+  longueurTube1x *tan(alpha) + diametreTube *cos(alpha)
+];
+real[int] p4 = [ 0, longueurTube1x *tan(alpha) ];
+real[int] p5 = [ longueurTube1x, 0 ];
+real[int] p6 = [ 0, -longueurTube1x *tan(alpha) ];
+real[int] p7 = [
+  diametreTube * sin(alpha),
+  -longueurTube1x *tan(alpha) - diametreTube *cos(alpha)
+];
+real[int] p8 = [ longueurTube1x + d0, -rayonTube ];
+real[int] p9 = [ longueurTube1x + d0 + longueurTube2, -rayonTube ];
+
+// noms des labels des bords
+
+int labelBordNeutre = 0;
+int labelEntree1 = 1;
+int labelEntree2 = 2;
+int labelHautChauffe = 3;
+int labelBasChauffe = 4;
+int labelSortie = 5;
+
+// construction des bords de la partie en Y du tube
+
+border bord1(t = 0, 1) {
+  x = p1[0] + t * (p2[0] - p1[0]);
+  y = p1[1] + t * (p2[1] - p1[1]);
+  label = labelBordNeutre;
+}
+
+border bord2(t = 0, 1) {
+  x = p2[0] + t * (p3[0] - p2[0]);
+  y = p2[1] + t * (p3[1] - p2[1]);
+  label = labelBordNeutre;
+}
+
+border bord3(t = 0, 1) {
+  x = p3[0] + t * (p4[0] - p3[0]);
+  y = p3[1] + t * (p4[1] - p3[1]);
+  label = labelEntree1;
+}
+
+border bord4(t = 0, 1) {
+  x = p4[0] + t * (p5[0] - p4[0]);
+  y = p4[1] + t * (p5[1] - p4[1]);
+  label = labelBordNeutre;
+}
+
+border bord5(t = 0, 1) {
+  x = p5[0] + t * (p6[0] - p5[0]);
+  y = p5[1] + t * (p6[1] - p5[1]);
+  label = labelBordNeutre;
+}
+
+border bord6(t = 0, 1) {
+  x = p6[0] + t * (p7[0] - p6[0]);
+  y = p6[1] + t * (p7[1] - p6[1]);
+  label = labelEntree2;
+}
+
+border bord7(t = 0, 1) {
+  x = p7[0] + t * (p8[0] - p7[0]);
+  y = p7[1] + t * (p8[1] - p7[1]);
+  label = labelBordNeutre;
+}
+
+border bord8(t = 0, 1) {
+  x = p8[0] + t * (p9[0] - p8[0]);
+  y = p8[1] + t * (p9[1] - p8[1]);
+  label = labelBordNeutre;
+}
+
+// construction de la partie de chauffe
+
+border basChauffe(t = 0, longueurOscillations) {
+  x = p9[0] + t;
+  y = p9[1];
+  label = labelBasChauffe;
+}
+
+border hautChauffe(t = longueurOscillations, 0) {
+  x = p1[0] + t;
+  y = p1[1];
+  label = labelHautChauffe;
+}
+
+
+// construction de la sortie
+
+border sortieChauffeBas(t = 0, 1) {
+  x = p9[0] + longueurOscillations +
+      t * longueurTube3;
+  y = -rayonTube;
+  label = labelBordNeutre;
+}
+
+border sortieChauffeHaut(t = 0, 1) {
+  x = p1[0] + longueurOscillations +
+      (1 - t) * longueurTube3;
+  y = rayonTube;
+  label = labelBordNeutre;
+}
+
+border fermeture(t = 0, 1) {
+  x = p9[0] + longueurOscillations + longueurTube3;
+  y = -rayonTube + t * 2 * rayonTube;
+  label = labelSortie;
+}
+
+// discrétisation des courbes
+
+int nbPointsT1 = longueurTube1 / h + 1;
+int nbPointsT2 = longueurTube2 / h + 1;
+int nbPointsT3 = longueurTube3 / h + 1;
+int nbPointsChauffe = longueurOscillations / h + 1;
+int nbPointsRayon = diametreTube / h + 1;
+int nbPointsJonction = translationChauffe[0] / h + 1;
+
+// affichage du domaine
+
+plot(bord1(nbPointsT2) + bord2(nbPointsT1) + bord3(nbPointsRayon) +
+         bord4(nbPointsT1) + bord5(nbPointsT1) + bord6(nbPointsRayon) +
+         bord7(nbPointsT1) + bord8(nbPointsT2) + hautChauffe(nbPointsChauffe) +
+         basChauffe(nbPointsChauffe) + sortieChauffeBas(nbPointsT3) +
+         sortieChauffeHaut(nbPointsT3) + fermeture(nbPointsRayon),
+     wait = true);
+
+mesh Th = buildmesh(
+    bord1(nbPointsT2) + bord2(nbPointsT1) + bord3(nbPointsRayon) +
+    bord4(nbPointsT1) + bord5(nbPointsT1) + bord6(nbPointsRayon) +
+    bord7(nbPointsT1) + bord8(nbPointsT2) + hautChauffe(nbPointsChauffe) +
+    basChauffe(nbPointsChauffe) + sortieChauffeBas(nbPointsT3) +
+    sortieChauffeHaut(nbPointsT3) + fermeture(nbPointsRayon));
+
+plot(Th, wait = true);
+
+// exportation du maillage
+
+savemesh(Th, "../projet-long-tube.msh");
